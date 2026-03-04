@@ -42,19 +42,6 @@ function LoginPage() {
             <h1 className="mt-6 max-w-xl text-5xl font-semibold leading-tight text-slate-800">
               智能药房系统
             </h1>
-            <p className="mt-6 max-w-2xl text-sm leading-7 text-slate-600">
-              前端已接入真实 NestJS 后端，覆盖仪表盘、药品主数据、采购、库存、调拨、处方、盘点、质控、报表和权限审计。
-            </p>
-            <div className="mt-10 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-3xl border border-cyan-100 bg-white/80 p-5">
-                <div className="text-sm text-cyan-700">真实联调后端</div>
-                <div className="mt-2 text-2xl font-semibold text-slate-800">http://127.0.0.1:4000</div>
-              </div>
-              <div className="rounded-3xl border border-blue-100 bg-white/80 p-5">
-                <div className="text-sm text-blue-700">默认演示账号</div>
-                <div className="mt-2 text-2xl font-semibold text-slate-800">admin / admin123</div>
-              </div>
-            </div>
           </div>
         </section>
 

@@ -52,7 +52,7 @@ export const moduleResolvers = {
 
     return {
       title: '药品基础数据管理',
-      subtitle: '来自 `api/drugs` 与 `api/drugs/categories/tree` 的真实药品档案与分类数据。',
+      subtitle: '药品档案与分类维护。',
       metrics: [
         metric('药品档案数', formatNumber(drugs.length), `启用品规 ${formatNumber(drugs.length)} 个`),
         metric('分类节点', formatNumber(flatCategories.length), `一级/二级分类共 ${formatNumber(flatCategories.length)} 个`),
@@ -87,7 +87,7 @@ export const moduleResolvers = {
 
     return {
       title: '采购与供应商管理',
-      subtitle: '联调 `api/v1/procurement/overview`、`suppliers`、`orders`，展示真实采购与履约数据。',
+      subtitle: '采购计划、订单与供应商履约管理。',
       metrics: [
         metric('供应商总数', formatNumber(overview.supplierTotal), `有效供应商 ${formatNumber(overview.validSuppliers)} 家`),
         metric('采购订单', formatNumber(overview.orderTotal), `待到货 ${formatNumber(overview.dueArrivals)} 单`),
@@ -128,7 +128,7 @@ export const moduleResolvers = {
 
     return {
       title: '库存批次与货位管理',
-      subtitle: '真实展示库存概览、批次台账、低库存与近效期预警，接口来自 `api/inventory/*`。',
+      subtitle: '库存概览、批次台账与预警管理。',
       metrics: [
         metric('批次数量', formatNumber(overview.totalBatchCount), `货位数 ${formatNumber(overview.locationCount)}`),
         metric('可用库存', formatNumber(overview.availableQty), `冻结 ${formatNumber(overview.frozenQty)} / 预留 ${formatNumber(overview.reservedQty)}`),
@@ -168,7 +168,7 @@ export const moduleResolvers = {
 
     return {
       title: '出入库管理',
-      subtitle: '基于真实库存流水、货位与库存概览接口，体现入库、出库、冻结、移位等流转记录。',
+      subtitle: '入库、出库、冻结与移位流转管理。',
       metrics: [
         metric('库存流水', formatNumber(transactions.length), `展示最近 ${formatNumber(transactions.length)} 条记录`),
         metric('货位总数', formatNumber(locations.length), `有效货位 ${formatNumber(locations.length)} 个`),
@@ -204,7 +204,7 @@ export const moduleResolvers = {
 
     return {
       title: '调拨与配送管理',
-      subtitle: '使用 `api/v1/transfers` 与 `overview` 真实展示调拨、在途、签收和异常状态。',
+      subtitle: '调拨、在途、签收与异常状态管理。',
       metrics: [
         metric('调拨总单数', formatNumber(overview.total), `待处理 ${formatNumber(overview.pending)} 单`),
         metric('在途任务', formatNumber(overview.inTransit), `异常 ${formatNumber(overview.abnormal)} 单`),
@@ -242,7 +242,7 @@ export const moduleResolvers = {
 
     return {
       title: '发药与处方管理',
-      subtitle: '对接 `api/v1/prescriptions`，实时展示处方审核、风险等级和审方结论。',
+      subtitle: '处方审核、风险等级与审方结论管理。',
       metrics: [
         metric('处方总数', formatNumber(prescriptions.length), `待处理 ${formatNumber(pendingCount)} 张`),
         metric('高风险处方', formatNumber(highRiskCount), '来自审方分析风险等级'),
@@ -279,7 +279,7 @@ export const moduleResolvers = {
 
     return {
       title: '盘点与损益管理',
-      subtitle: '基于 `api/v1/stocktakes` 的真实盘点记录，展示盘盈盘亏与调整状态。',
+      subtitle: '盘点差异与损益调整管理。',
       metrics: [
         metric('盘点记录', formatNumber(stocktakes.length), `待复核 ${formatNumber(pendingCount)} 条`),
         metric('盘亏数量', formatNumber(stocktakes.filter((item) => item.diffType === 'LOSS').length), '按差异类型统计'),
@@ -316,7 +316,7 @@ export const moduleResolvers = {
 
     return {
       title: '质量控制与召回管理',
-      subtitle: '来自 `api/v1/quality/recalls` 的真实召回数据，覆盖通知、执行、冻结和闭环。',
+      subtitle: '召回通知、执行、冻结与闭环管理。',
       metrics: [
         metric('召回记录', formatNumber(recalls.length), `执行中 ${formatNumber(executingCount)} 条`),
         metric('受影响数量', formatNumber(recalls.reduce((sum, item) => sum + Number(item.affectedQty || 0), 0)), '按召回记录累计'),
@@ -357,7 +357,7 @@ export const moduleResolvers = {
 
     return {
       title: '统计报表与分析中心',
-      subtitle: '聚合 `reports` 模块真实 KPI、经营概览、销售趋势和品类分布数据。',
+      subtitle: 'KPI、经营概览、销售趋势与品类分析。',
       metrics: [
         metric('总库存量', formatNumber(kpis.totalInventory), `近效期 ${formatNumber(kpis.nearExpiry)} 项`),
         metric('缺货风险', formatNumber(kpis.lowStock), '按缺货阈值实时统计'),
@@ -394,7 +394,7 @@ export const moduleResolvers = {
 
     return {
       title: '系统管理与权限审计',
-      subtitle: '联调 `iam` 与 `integrations` 模块，展示用户、角色、权限、审计日志与接口任务。',
+      subtitle: '用户、角色、权限、审计与接口任务管理。',
       metrics: [
         metric('系统用户', formatNumber(users.length), `角色数 ${formatNumber(roles.length)}`),
         metric('权限项', formatNumber(permissions.length), `管理员权限 ${roles[0]?.permissionCount || 0}`),

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { moduleGroups } from '../config/modules';
+import { allModules } from '../config/modules';
 import { useAuth } from '../context/AuthContext';
 
 const Shell = styled.div`
@@ -27,9 +27,7 @@ function AppLayout() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
-  const currentModule =
-    moduleGroups.flatMap((group) => group.items).find((item) => item.path === location.pathname) ?? moduleGroups[0].items[0];
-  const navItems = moduleGroups.flatMap((group) => group.items);
+  const currentModule = allModules.find((item) => item.path === location.pathname) ?? allModules[0];
 
   return (
     <Shell
@@ -49,13 +47,11 @@ function AppLayout() {
         </div>
 
         <div className={`flex-1 overflow-y-auto ${collapsed ? 'px-3 py-5' : 'px-3 py-5'}`}>
-          {moduleGroups.map((group) => (
-            <div key={group.title} className="mb-2">
-              <div className="space-y-2">
-                {group.items.map((item) => {
-                  const icon = menuIcons[navItems.findIndex((navItem) => navItem.path === item.path) % menuIcons.length];
+          <div className="space-y-2">
+            {allModules.map((item, index) => {
+              const icon = menuIcons[index % menuIcons.length];
 
-                  return (
+              return (
                   <NavLink
                     key={item.path}
                     to={item.path}
@@ -77,11 +73,9 @@ function AppLayout() {
                       </div>
                     ) : null}
                   </NavLink>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
 
         <div className="shrink-0 border-t border-white/10 p-4">
