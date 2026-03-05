@@ -1,20 +1,9 @@
 import { useState } from 'react';
-import styled from 'styled-components';
 import { useAuth } from '../context/AuthContext';
-
-const Shell = styled.div`
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-`;
 
 function LoginPage() {
   const { login } = useAuth();
-  const [form, setForm] = useState({
-    username: 'admin',
-    password: 'admin123'
-  });
+  const [form, setForm] = useState({ username: 'admin', password: 'admin123' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -22,7 +11,6 @@ function LoginPage() {
     event.preventDefault();
     setSubmitting(true);
     setError('');
-
     try {
       await login(form);
     } catch (err) {
@@ -33,7 +21,7 @@ function LoginPage() {
   }
 
   return (
-    <Shell>
+    <div className="grid min-h-screen place-items-center p-6">
       <div className="grid w-full max-w-6xl overflow-hidden rounded-[36px] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(22,48,71,0.08)] lg:grid-cols-[1.1fr_0.9fr]">
         <section className="relative overflow-hidden border-b border-slate-200 bg-[linear-gradient(180deg,#f7fcfd_0%,#eef7fa_100%)] p-8 lg:border-b-0 lg:border-r lg:p-12">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(14,165,164,0.14),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(47,128,237,0.1),transparent_28%)]" />
@@ -83,7 +71,7 @@ function LoginPage() {
           </div>
         </section>
       </div>
-    </Shell>
+    </div>
   );
 }
 

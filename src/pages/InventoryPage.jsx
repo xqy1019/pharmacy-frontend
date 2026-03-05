@@ -5,16 +5,19 @@ import {
   fetchInventoryOverview,
   fetchInventoryTransactions,
   fetchLowStockAlerts,
-  fetchNearExpiryAlerts
+  fetchNearExpiryAlerts,
+  inboundBulk
 } from '../api/pharmacy';
+import Modal from '../components/Modal';
+import Pager from '../components/Pager';
+import SummaryCard from '../components/SummaryCard';
+import { useToast } from '../context/ToastContext';
 import { useAsyncData } from '../hooks/useAsyncData';
 import { formatDate, formatDateTime, formatNumber } from '../utils/formatters';
 
 const tabs = [
   { key: 'batches', label: '批次台账' },
-  { key: 'transactions', label: '库存流水' },
-  { key: 'alerts', label: '预警中心' },
-  { key: 'locations', label: '货位视图' }
+  { key: 'transactions', label: '库存流水' }
 ];
 
 const initialFilters = {
@@ -54,74 +57,125 @@ function statusTone(value) {
   return 'neutral';
 }
 
-function SummaryCard({ label, value, detail, tone = 'info' }) {
-  const accentMap = {
-    info: 'from-cyan-500 to-teal-500',
-    success: 'from-emerald-500 to-green-500',
-    warning: 'from-amber-500 to-orange-500',
-    danger: 'from-rose-500 to-red-500'
-  };
+
+// ── 批次入库 Modal ────────────────────────────────────────────────────────────
+const EMPTY_LINE = () => ({ drugName: '', batchNo: '', expiryDate: '', locationCode: '', qty: '1', unitCost: '0.00' });
+
+function InboundModal({ onClose, onSuccess }) {
+  const [lines, setLines] = useState([EMPTY_LINE()]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  function updateLine(idx, field, value) {
+    setLines((prev) => prev.map((l, i) => i === idx ? { ...l, [field]: value } : l));
+  }
+
+  async function handleSubmit() {
+    if (lines.some((l) => !l.drugName.trim())) { setError('请填写所有药品名称'); return; }
+    if (lines.some((l) => !l.batchNo.trim())) { setError('请填写所有批号'); return; }
+    if (lines.some((l) => Number(l.qty) <= 0)) { setError('数量必须大于 0'); return; }
+    setError('');
+    setSubmitting(true);
+    try {
+      await inboundBulk({
+        warehouseId: 1,
+        lines: lines.map((l) => ({
+          drugName: l.drugName,
+          batchNo: l.batchNo,
+          expiryDate: l.expiryDate || undefined,
+          locationCode: l.locationCode || undefined,
+          qty: Number(l.qty),
+          unitCost: Number(l.unitCost) || undefined
+        }))
+      });
+      onSuccess();
+    } catch (e) {
+      setError(e?.response?.data?.message || e.message || '入库失败');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
-    <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-slate-500">{label}</p>
-          <strong className="mt-4 block text-[18px] font-semibold text-slate-800 md:text-[20px]">{value}</strong>
-          <p className="mt-2 text-sm text-slate-500">{detail}</p>
-        </div>
-        <div className={`grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br ${accentMap[tone]} text-sm font-semibold text-white`}>
-          ·
-        </div>
+    <Modal onClose={onClose} maxWidth="max-w-3xl">
+      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <h2 className="text-lg font-semibold text-slate-800">批次入库</h2>
+        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
       </div>
-    </article>
-  );
-}
 
-function Pager({ total, page, pageSize, onPageChange, onPageSizeChange }) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs font-medium text-slate-600">入库明细</span>
+          <button onClick={() => setLines((p) => [...p, EMPTY_LINE()])}
+            className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100">
+            + 添加行
+          </button>
+        </div>
+        <div className="overflow-hidden rounded-xl border border-slate-200">
+          <table className="min-w-full text-xs">
+            <thead className="bg-slate-50 text-slate-500">
+              <tr>
+                <th className="px-3 py-2 text-left font-medium">药品名称 *</th>
+                <th className="px-3 py-2 text-left font-medium w-28">批号 *</th>
+                <th className="px-3 py-2 text-left font-medium w-32">效期</th>
+                <th className="px-3 py-2 text-left font-medium w-24">货位</th>
+                <th className="px-3 py-2 text-left font-medium w-20">数量 *</th>
+                <th className="px-3 py-2 text-left font-medium w-24">单价(元)</th>
+                <th className="w-8"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line, idx) => (
+                <tr key={idx} className="border-t border-slate-100">
+                  <td className="px-3 py-2">
+                    <input value={line.drugName} onChange={(e) => updateLine(idx, 'drugName', e.target.value)}
+                      placeholder="药品名称"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input value={line.batchNo} onChange={(e) => updateLine(idx, 'batchNo', e.target.value)}
+                      placeholder="批号"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input type="date" value={line.expiryDate} onChange={(e) => updateLine(idx, 'expiryDate', e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input value={line.locationCode} onChange={(e) => updateLine(idx, 'locationCode', e.target.value)}
+                      placeholder="货位"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input type="number" min="1" value={line.qty} onChange={(e) => updateLine(idx, 'qty', e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input type="number" min="0" step="0.01" value={line.unitCost} onChange={(e) => updateLine(idx, 'unitCost', e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    {lines.length > 1 && (
+                      <button onClick={() => setLines((p) => p.filter((_, i) => i !== idx))}
+                        className="text-rose-400 hover:text-rose-600">✕</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
+      </div>
 
-  return (
-    <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-3">
-        <span>共 {total} 条</span>
-        <label className="flex items-center gap-2">
-          <span>每页</span>
-          <select
-            value={pageSize}
-            onChange={(event) => onPageSizeChange(Number(event.target.value))}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-700 outline-none"
-          >
-            {[5, 10, 20].map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          disabled={page === 1}
-          onClick={() => onPageChange(Math.max(1, page - 1))}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          上一页
-        </button>
-        <span className="min-w-[88px] text-center text-slate-600">
-          {page} / {totalPages}
-        </span>
-        <button
-          type="button"
-          disabled={page === totalPages}
-          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          下一页
+      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
+        <button onClick={handleSubmit} disabled={submitting}
+          className="rounded-xl bg-emerald-600 px-5 py-2 text-sm text-white transition hover:bg-emerald-700 disabled:opacity-50">
+          {submitting ? '提交中...' : '确认入库'}
         </button>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -132,9 +186,7 @@ function InventoryTable({ activeTab, rows, page, pageSize, setPage, setPageSize 
 
   const columns = {
     batches: ['药品', '批号', '货位', '效期', '剩余天数', '可售/冻结/占用', '库存状态', '追溯码', '质检状态'],
-    transactions: ['流水类型', '药品', '批号', '数量', '货位', '发生时间'],
-    alerts: ['预警类型', '药品', '当前值/批号', '阈值/效期', '货位', '备注'],
-    locations: ['货位编码', '货位名称', '分区', '货架', '仓库', '状态']
+    transactions: ['流水类型', '药品', '批号', '数量', '货位', '发生时间']
   }[activeTab];
 
   return (
@@ -170,7 +222,7 @@ function InventoryTable({ activeTab, rows, page, pageSize, setPage, setPageSize 
           </tbody>
         </table>
       </div>
-      <Pager total={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
+      <Pager total={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} pageSizeOptions={[5, 10, 20]} />
     </div>
   );
 }
@@ -182,6 +234,8 @@ function InventoryPage() {
   const [draftFilters, setDraftFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showInbound, setShowInbound] = useState(false);
+  const toast = useToast();
 
   const { data, loading, error } = useAsyncData(
     async () => {
@@ -194,14 +248,7 @@ function InventoryPage() {
         fetchNearExpiryAlerts()
       ]);
 
-      return {
-        overview,
-        batches,
-        transactions,
-        locations,
-        lowStockAlerts,
-        nearExpiryAlerts
-      };
+      return { overview, batches, transactions, locations, lowStockAlerts, nearExpiryAlerts };
     },
     [refreshKey]
   );
@@ -220,9 +267,7 @@ function InventoryPage() {
   );
 
   const metrics = useMemo(() => {
-    if (!data) {
-      return [];
-    }
+    if (!data) return [];
 
     return [
       {
@@ -255,22 +300,16 @@ function InventoryPage() {
   }, [data]);
 
   const tabCounts = useMemo(() => {
-    if (!data) {
-      return {};
-    }
+    if (!data) return {};
 
     return {
       batches: data.batches.length,
-      transactions: data.transactions.length,
-      alerts: data.lowStockAlerts.length + data.nearExpiryAlerts.length,
-      locations: data.locations.length
+      transactions: data.transactions.length
     };
   }, [data]);
 
   const rows = useMemo(() => {
-    if (!data) {
-      return [];
-    }
+    if (!data) return [];
 
     if (activeTab === 'batches') {
       return data.batches
@@ -322,110 +361,28 @@ function InventoryPage() {
         });
     }
 
-    if (activeTab === 'transactions') {
-      return data.transactions
-        .filter((item) => {
-          const keyword = appliedFilters.keyword.trim().toLowerCase();
-          return !keyword
-            || String(item.drugName || '').toLowerCase().includes(keyword)
-            || String(item.drugCode || '').toLowerCase().includes(keyword)
-            || String(item.batchNo || '').toLowerCase().includes(keyword);
-        })
-        .map((item) => ({
-          key: item.id,
-          cells: [
-            <span key="tx" className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(item.qty > 0 ? 'success' : 'warning')}`}>
-              {item.txTypeLabel}
-            </span>,
-            item.drugName,
-            item.batchNo,
-            formatNumber(item.qty),
-            item.locationCode || '--',
-            formatDateTime(item.occurredAt)
-          ]
-        }));
-    }
-
-    if (activeTab === 'alerts') {
-      return [
-        ...data.lowStockAlerts.map((item) => ({
-          key: `low-${item.drugId}`,
-          cells: [
-            <span key="low" className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass('danger')}`}>
-              低库存
-            </span>,
-            item.drugName,
-            formatNumber(item.currentQty),
-            formatNumber(item.threshold),
-            '--',
-            `${formatNumber(item.frozenQty)} / ${formatNumber(item.reservedQty)}`
-          ]
-        })),
-        ...data.nearExpiryAlerts.map((item) => ({
-          key: `expiry-${item.batchId}`,
-          cells: [
-            <span key="expiry" className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass('warning')}`}>
-              近效期
-            </span>,
-            item.drugName,
-            item.batchNo,
-            formatDate(item.expiryDate),
-            item.locationCode,
-            `${formatNumber(item.availableQty)} 可售`
-          ]
-        }))
-      ];
-    }
-
-    return data.locations
-      .filter((item) => !appliedFilters.location || item.locationCode === appliedFilters.location)
+    return data.transactions
+      .filter((item) => {
+        const keyword = appliedFilters.keyword.trim().toLowerCase();
+        return !keyword
+          || String(item.drugName || '').toLowerCase().includes(keyword)
+          || String(item.drugCode || '').toLowerCase().includes(keyword)
+          || String(item.batchNo || '').toLowerCase().includes(keyword);
+      })
       .map((item) => ({
         key: item.id,
         cells: [
-          item.locationCode,
-          item.locationName,
-          item.zoneName,
-          item.shelfName,
-          item.storeName,
-          <span key="status" className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(statusTone(item.statusLabel))}`}>
-            {item.statusLabel}
-          </span>
+          <span key="tx" className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(item.qty > 0 ? 'success' : 'warning')}`}>
+            {item.txTypeLabel}
+          </span>,
+          item.drugName,
+          item.batchNo,
+          formatNumber(item.qty),
+          item.locationCode || '--',
+          formatDateTime(item.occurredAt)
         ]
       }));
   }, [activeTab, appliedFilters, data]);
-
-  const highlights = useMemo(() => {
-    if (!data) {
-      return [];
-    }
-
-    const urgentBatch = [...data.nearExpiryAlerts].sort((a, b) => a.daysToExpiry - b.daysToExpiry)[0];
-    const lowStockDrug = [...data.lowStockAlerts].sort((a, b) => a.currentQty - b.currentQty)[0];
-    const latestTransaction = data.transactions[0];
-
-    return [
-      {
-        label: '近效期批次',
-        value: formatNumber(data.overview.nearExpiryCount),
-        detail: urgentBatch ? `${urgentBatch.drugName} · ${urgentBatch.batchNo}` : '暂无近效期批次'
-      },
-      {
-        label: '缺失追溯码',
-        value: formatNumber(data.overview.missingTraceCount),
-        detail: `${formatNumber(data.overview.abnormalBatchCount)} 个异常批次`
-      },
-      {
-        label: '低库存药品',
-        value: formatNumber(data.overview.lowStockCount),
-        detail: lowStockDrug ? `${lowStockDrug.drugName} · 当前 ${formatNumber(lowStockDrug.currentQty)}` : '暂无低库存'
-      },
-      {
-        label: '最新流水',
-        value: latestTransaction?.txTypeLabel || '--',
-        detail: latestTransaction ? `${latestTransaction.drugName} · ${formatDateTime(latestTransaction.occurredAt)}` : '暂无流水'
-      }
-    ];
-  }, [data]);
 
   if (loading || !data) {
     return <div className="rounded-3xl border border-slate-200 bg-white p-10 text-slate-700 shadow-sm">正在加载库存批次管理数据...</div>;
@@ -444,153 +401,95 @@ function InventoryPage() {
       </section>
 
       <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
-        <div className="flex flex-col gap-5 border-b border-slate-200 pb-5 xl:flex-row xl:items-start xl:justify-between">
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm font-medium tracking-[0.24em] text-cyan-700">库存管理</p>
-              <h3 className="mt-2 text-[30px] font-semibold tracking-tight text-slate-800">库存批次管理工作台</h3>
-            </div>
-            <p className="max-w-3xl text-sm leading-7 text-slate-500">
-              统一查看批次、流水、预警与货位数据，支持按药品、批号、效期和状态快速定位问题批次。
-            </p>
+        <div className="mb-4 flex items-center justify-between gap-4 border-b border-slate-200 pb-3">
+          <div className="flex flex-wrap gap-8">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setPage(1);
+                }}
+                className={`relative border-b-2 pb-3 text-sm font-medium transition ${
+                  activeTab === tab.key
+                    ? 'border-emerald-600 text-emerald-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">{formatNumber(tabCounts[tab.key] || 0)}</span>
+              </button>
+            ))}
           </div>
-
-          <div className="flex flex-wrap gap-3">
+          <div className="flex shrink-0 gap-2">
             <button
               type="button"
               onClick={() => setRefreshKey((value) => value + 1)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
             >
               刷新
             </button>
             <button
               type="button"
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            >
-              新增货位
-            </button>
-            <button
-              type="button"
-              className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700"
+              onClick={() => setShowInbound(true)}
+              className="rounded-xl bg-emerald-600 px-3 py-2 text-sm text-white transition hover:bg-emerald-700"
             >
               批次入库
             </button>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
-          {highlights.map((item) => (
-            <div key={item.label} className="rounded-[20px] border border-slate-200 bg-slate-50 px-5 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-medium text-slate-500">{item.label}</span>
-                <span className="rounded-full bg-white px-3 py-1 text-xs text-slate-500 shadow-sm">摘要</span>
-              </div>
-              <div className="mt-4 text-2xl font-semibold text-slate-800">{item.value}</div>
-              <div className="mt-2 text-sm text-slate-500">{item.detail}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-8 border-b border-slate-200">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab.key);
-                setPage(1);
-              }}
-              className={`relative border-b-2 px-1 pb-4 text-sm font-medium transition ${
-                activeTab === tab.key
-                  ? 'border-emerald-600 text-emerald-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
-              }`}
+        <div className="mb-4 rounded-[18px] border border-slate-200 bg-slate-50 p-4">
+          <div className="grid gap-3 lg:grid-cols-[1.5fr_0.95fr_0.95fr_0.95fr_auto]">
+            <input
+              value={draftFilters.keyword}
+              onChange={(event) => setDraftFilters((prev) => ({ ...prev, keyword: event.target.value }))}
+              placeholder="药品名/编码/批号"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-300"
+            />
+            <select
+              value={draftFilters.location}
+              onChange={(event) => setDraftFilters((prev) => ({ ...prev, location: event.target.value }))}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-300"
             >
-              <span>{tab.label}</span>
-              <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">{formatNumber(tabCounts[tab.key] || 0)}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-          <div className="grid gap-4 lg:grid-cols-[1.5fr_0.95fr_0.95fr_0.95fr_auto]">
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-700">关键字</span>
-              <input
-                value={draftFilters.keyword}
-                onChange={(event) => setDraftFilters((prev) => ({ ...prev, keyword: event.target.value }))}
-                placeholder="药品名/编码/批号"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-700 outline-none transition focus:border-emerald-300"
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-700">货位</span>
-              <select
-                value={draftFilters.location}
-                onChange={(event) => setDraftFilters((prev) => ({ ...prev, location: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-700 outline-none transition focus:border-emerald-300"
-              >
-                <option value="">全部货位</option>
-                {locationOptions.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-700">库存状态</span>
-              <select
-                value={draftFilters.stockStatus}
-                onChange={(event) => setDraftFilters((prev) => ({ ...prev, stockStatus: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-700 outline-none transition focus:border-emerald-300"
-              >
-                <option value="">全部状态</option>
-                {stockStatusOptions.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-700">质检状态</span>
-              <select
-                value={draftFilters.qualityStatus}
-                onChange={(event) => setDraftFilters((prev) => ({ ...prev, qualityStatus: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-700 outline-none transition focus:border-emerald-300"
-              >
-                <option value="">全部状态</option>
-                {qualityStatusOptions.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="flex items-end gap-3">
+              <option value="">全部货位</option>
+              {locationOptions.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+            <select
+              value={draftFilters.stockStatus}
+              onChange={(event) => setDraftFilters((prev) => ({ ...prev, stockStatus: event.target.value }))}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-300"
+            >
+              <option value="">全部库存状态</option>
+              {stockStatusOptions.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+            <select
+              value={draftFilters.qualityStatus}
+              onChange={(event) => setDraftFilters((prev) => ({ ...prev, qualityStatus: event.target.value }))}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-300"
+            >
+              <option value="">全部质检状态</option>
+              {qualityStatusOptions.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setAppliedFilters(draftFilters);
-                  setPage(1);
-                }}
-                className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
+                onClick={() => { setAppliedFilters(draftFilters); setPage(1); }}
+                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700"
               >
                 查询
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setDraftFilters(initialFilters);
-                  setAppliedFilters(initialFilters);
-                  setPage(1);
-                }}
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                onClick={() => { setDraftFilters(initialFilters); setAppliedFilters(initialFilters); setPage(1); }}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50"
               >
                 重置
               </button>
@@ -598,17 +497,26 @@ function InventoryPage() {
           </div>
         </div>
 
-        <div className="mt-5">
-          <InventoryTable
-            activeTab={activeTab}
-            rows={rows}
-            page={page}
-            pageSize={pageSize}
-            setPage={setPage}
-            setPageSize={setPageSize}
-          />
-        </div>
+        <InventoryTable
+          activeTab={activeTab}
+          rows={rows}
+          page={page}
+          pageSize={pageSize}
+          setPage={setPage}
+          setPageSize={setPageSize}
+        />
       </section>
+
+      {showInbound && (
+        <InboundModal
+          onClose={() => setShowInbound(false)}
+          onSuccess={() => {
+            setShowInbound(false);
+            toast.success('入库成功');
+            setRefreshKey((v) => v + 1);
+          }}
+        />
+      )}
     </div>
   );
 }

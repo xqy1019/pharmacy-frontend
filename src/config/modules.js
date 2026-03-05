@@ -1,8 +1,18 @@
 export const allModules = [
   { path: '/', key: 'dashboard', label: '仪表盘', shortLabel: '首页大屏' },
   { path: '/drug-master', key: 'drugMaster', label: '药品基础数据管理', shortLabel: '药品档案' },
-  { path: '/suppliers', key: 'suppliers', label: '采购与供应商管理', shortLabel: '采购管理' },
-  { path: '/inventory', key: 'inventory', label: '库存批次与货位管理', shortLabel: '库存批次' },
+  { path: '/procurement', key: 'suppliers', label: '采购与供应商管理', shortLabel: '采购管理' },
+  {
+    path: '/inventory',
+    key: 'inventory',
+    label: '库存批次与货位管理',
+    shortLabel: '库存批次',
+    children: [
+      { path: '/inventory', key: 'inventoryBatches', label: '批次台账', shortLabel: '批次台账' },
+      { path: '/inventory/alerts', key: 'inventoryAlerts', label: '预警中心', shortLabel: '预警中心' },
+      { path: '/inventory/locations', key: 'inventoryLocations', label: '货位视图', shortLabel: '货位视图' }
+    ]
+  },
   { path: '/warehouse', key: 'warehouse', label: '出入库管理', shortLabel: '出入库' },
   { path: '/allocation', key: 'allocation', label: '调拨与配送管理', shortLabel: '调拨配送' },
   { path: '/dispensing', key: 'dispensing', label: '发药与处方管理', shortLabel: '发药处方' },

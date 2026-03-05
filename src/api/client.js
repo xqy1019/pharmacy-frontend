@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getStoredAuth } from '../utils/storage';
+import { AUTH_STORAGE_KEY, getStoredAuth } from '../utils/storage';
 
 const client = axios.create({
   timeout: 12000
@@ -37,6 +37,16 @@ client.interceptors.response.use(
     return payload;
   },
   (error) => {
+    if (error?.response?.status === 401) {
+      // Token 过期或无效，清除本地认证状态并跳转登录页
+      try {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      } catch (_) { /* ignore */ }
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/';
+      }
+    }
+
     const message =
       error?.response?.data?.message
       || error?.response?.data?.error
