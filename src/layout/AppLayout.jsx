@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { allModules } from '../config/modules';
+import { ROLE_LABEL } from '../config/permissions';
 import { useAuth } from '../context/AuthContext';
+import { usePermission } from '../hooks/usePermission';
 
-const menuIcons = ['◫', '⌂', '▣', '◪', '◩', '◨', '◎', '◌', '◍', '◳'];
+const menuIcons = ['◫', '⌂', '▣', '◪', '◩', '◨', '◎', '◌', '◍', '◳', '◰', '◱'];
 
 function findCurrentPage(pathname) {
   for (const module of allModules) {
     if (module.children) {
       const child = module.children.find((c) => c.path === pathname);
-      if (child) return child;
+      if (child) return { ...child, parentLabel: module.label };
     } else if (module.path === pathname) {
       return module;
     }
@@ -17,9 +19,11 @@ function findCurrentPage(pathname) {
   return allModules[0];
 }
 
+
 function AppLayout() {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { hasPerm } = usePermission();
   const [collapsed, setCollapsed] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState(() => {
     const initial = {};
@@ -42,6 +46,9 @@ function AppLayout() {
     return module.children.some((c) => location.pathname === c.path);
   }
 
+  // 当前用户角色显示名
+  const roleLabels = (user?.roles || []).map((r) => ROLE_LABEL[r] || r);
+
   return (
     <div
       className="relative min-h-screen bg-[#edf3f7] lg:grid"
@@ -60,12 +67,23 @@ function AppLayout() {
         <div className={`flex-1 overflow-y-auto ${collapsed ? 'px-3 py-5' : 'px-3 py-5'}`}>
           <div className="space-y-1">
             {allModules.map((item, index) => {
+              // 权限过滤：支持 requiredPerm（单个）和 requiredPerms（数组，任一满足）
+              const parentPerms = item.requiredPerms ?? (item.requiredPerm ? [item.requiredPerm] : []);
+              const childPerms = (item.children || []).flatMap((c) => c.requiredPerms ?? (c.requiredPerm ? [c.requiredPerm] : []));
+              const allPerms = [...parentPerms, ...childPerms];
+              const hasAccess = allPerms.length === 0 || allPerms.some((p) => hasPerm(p));
+              if (!hasAccess) return null;
+
               const icon = menuIcons[index % menuIcons.length];
               const hasChildren = item.children && item.children.length > 0;
               const isActive = isParentActive(item) || (!hasChildren && location.pathname === item.path);
               const isExpanded = expandedKeys[item.key];
 
               if (hasChildren) {
+                // 过滤掉无权限的子菜单
+                const visibleChildren = item.children.filter((c) => !c.requiredPerm || hasPerm(c.requiredPerm));
+                if (visibleChildren.length === 0) return null;
+
                 return (
                   <div key={item.key}>
                     <button
@@ -93,7 +111,7 @@ function AppLayout() {
 
                     {!collapsed && isExpanded && (
                       <div className="mt-1 ml-3 space-y-1 border-l border-white/10 pl-3">
-                        {item.children.map((child) => (
+                        {visibleChildren.map((child) => (
                           <NavLink
                             key={child.path}
                             to={child.path}
@@ -163,12 +181,26 @@ function AppLayout() {
       >
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 shadow-sm">
           <div>
-            <p className="text-sm text-slate-400">欢迎，{user?.fullName || user?.username || '系统管理员'}</p>
-            <h2 className="mt-1 text-2xl font-semibold text-slate-800">{currentPage.label}</h2>
+            {currentPage.parentLabel ? (
+              <p className="text-xs text-slate-400">{currentPage.parentLabel} / {currentPage.label}</p>
+            ) : (
+              <p className="text-xs text-slate-400">欢迎，{user?.fullName || user?.username || '系统管理员'}</p>
+            )}
+            <h2 className="mt-0.5 text-xl font-semibold text-slate-800">{currentPage.label}</h2>
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-slate-500">角色：</span>
-            <span className="font-medium text-slate-700">{user?.username || 'admin'}</span>
+            <div className="flex gap-1">
+              {roleLabels.length > 0 ? (
+                roleLabels.map((label) => (
+                  <span key={label} className="rounded-full bg-cyan-100 px-2.5 py-0.5 text-xs font-medium text-cyan-700">
+                    {label}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs text-slate-400">未分配角色</span>
+              )}
+            </div>
             <button
               type="button"
               onClick={logout}

@@ -1,0 +1,116 @@
+// 权限分组（模块名 → 中文）
+export const PERM_GROUPS = {
+  dashboard:    '仪表盘',
+  inventory:    '库存管理',
+  procurement:  '采购管理',
+  prescription: '处方管理',
+  transfer:     '调拨管理',
+  stocktake:    '盘点管理',
+  quality:      '质量召回',
+  report:       '统计报表',
+  integration:  '系统集成',
+  sales:        '销售管理',
+  iam:          '系统权限',
+};
+
+// 权限码 → 中文名
+export const PERM_LABEL = {
+  'dashboard.view':              '查看仪表盘',
+  'iam.user.view':               '查看用户列表',
+  'iam.user.create':             '创建/编辑用户',
+  'iam.user.assignRole':         '分配用户角色',
+  'iam.role.view':               '查看角色列表',
+  'iam.permission.view':         '查看权限列表',
+  'iam.role.assignPerm':         '配置角色权限',
+  'iam.audit.view':              '查看审计日志',
+  'iam.audit.export':            '导出审计日志',
+  'inventory.drug.manage':       '药品档案管理',
+  'inventory.batch.manage':      '批次库存管理',
+  'procurement.supplier.view':   '查看供应商',
+  'procurement.supplier.create': '管理供应商',
+  'procurement.order.view':      '查看采购单',
+  'procurement.order.create':    '创建采购单',
+  'procurement.order.approve':   '审批采购单',
+  'prescription.view':           '查看处方',
+  'prescription.create':         '创建处方',
+  'prescription.review':         '审方/发药确认',
+  'transfer.view':               '查看调拨单',
+  'transfer.create':             '创建调拨单',
+  'transfer.sign':               '签收调拨',
+  'stocktake.view':              '查看盘点记录',
+  'stocktake.create':            '创建/执行盘点',
+  'quality.recall.view':         '查看质量召回',
+  'quality.recall.create':       '发起质量召回',
+  'quality.batch.freeze':        '冻结/解冻批次',
+  'report.kpi.view':             '查看KPI报表',
+  'report.supplier.view':        '查看供应商报表',
+  'integration.job.view':        '查看集成任务',
+  'integration.push':            '推送集成数据',
+  'sales.order.view':            '查看销售订单',
+  'sales.order.create':          '创建销售订单',
+  'sales.trace.view':            '追溯码查询',
+};
+
+// 角色码 → 中文名
+export const ROLE_LABEL = {
+  admin:                 '系统管理员',
+  supervisor:            '药房主管',
+  outpatient_pharmacist: '门诊药剂师',
+  inpatient_pharmacist:  '住院药剂师',
+  warehouse_pharmacist:  '药库药师',
+  anesthesia_pharmacist: '麻醉药师',
+  anesthesiologist:      '麻醉医师',
+  dispense_clerk:        '发药员',
+  pharmacist:            '药师',
+  purchaser:             '采购员',
+  finance:               '财务',
+  viewer:                '查看员',
+};
+
+// 角色职责描述
+export const ROLE_DESC = {
+  admin:                 '系统配置、角色权限分配、用户账号管理、模块开关、基础数据维护（药品分类、价格等）',
+  supervisor:            '查看全药房数据、操作日志追溯、工作量统计、异常预警处理、报表分析、审批特殊操作',
+  outpatient_pharmacist: '处方分流、发药确认、智能发药机器人交互、精麻药出柜登记、药品上架/智能存储、普通库存查询',
+  inpatient_pharmacist:  '分装核对、排药印签、智能调配分拣、病区请领处理、特殊药品管理、按片发药',
+  warehouse_pharmacist:  '药品入库、出库、退货、盘点、补货到智能柜/发药机、供应商管理、库存预警',
+  anesthesia_pharmacist: '手术套餐配置、麻醉药品管理、特殊药品账册登记、空安瓿回收',
+  anesthesiologist:      '登录取用手术套餐箱、临时取药、还箱、查看本人使用记录',
+  dispense_clerk:        '仅限确认发药、患者取药、LED药框指引、简单查询',
+  pharmacist:            '处方审核与通用发药（兼容旧角色）',
+  purchaser:             '采购与供应商管理（兼容旧角色）',
+  finance:               '财务统计与审计（兼容旧角色）',
+  viewer:                '系统只读查看（兼容旧角色）',
+};
+
+// 角色典型限制说明
+export const ROLE_CONSTRAINT = {
+  admin:                 '最高权限，通常不允许日常操作药品',
+  supervisor:            '可查看但不直接操作大部分库存，偏管理分析',
+  outpatient_pharmacist: '一般无补货/大批量入库权限',
+  inpatient_pharmacist:  '住院业务专属，门诊处方不可见或只读',
+  warehouse_pharmacist:  '可操作大库存，精麻类需双人或更高授权',
+  anesthesia_pharmacist: '手术室专用，权限严格隔离',
+  anesthesiologist:      '无补药、无库存修改、无管理权限，防止"三权合一"',
+  dispense_clerk:        '基本无修改权限，只执行发药动作',
+  pharmacist:            '',
+  purchaser:             '',
+  finance:               '',
+  viewer:                '',
+};
+
+// 角色色块（渐变）
+export const ROLE_COLOR = {
+  admin:                 'from-violet-500 to-purple-600',
+  supervisor:            'from-blue-500 to-cyan-600',
+  outpatient_pharmacist: 'from-emerald-500 to-teal-600',
+  inpatient_pharmacist:  'from-teal-500 to-green-600',
+  warehouse_pharmacist:  'from-amber-500 to-orange-500',
+  anesthesia_pharmacist: 'from-rose-500 to-red-600',
+  anesthesiologist:      'from-pink-500 to-rose-500',
+  dispense_clerk:        'from-slate-500 to-slate-600',
+  pharmacist:            'from-cyan-500 to-blue-500',
+  purchaser:             'from-orange-400 to-amber-500',
+  finance:               'from-green-500 to-emerald-600',
+  viewer:                'from-slate-400 to-slate-500',
+};

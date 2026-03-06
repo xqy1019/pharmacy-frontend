@@ -163,3 +163,131 @@ export function fetchAuditLogs() {
 export function fetchIntegrationJobs() {
   return client.get('/api/v1/integrations/jobs');
 }
+
+// ── 销售管理 ────────────────────────────────────────────────────────────────
+export function fetchSalesOrders() {
+  return client.get('/api/v1/sales/orders');
+}
+
+export function fetchSalesOrderDetail(id) {
+  return client.get(`/api/v1/sales/orders/${id}`);
+}
+
+export function fetchSalesReturns() {
+  return client.get('/api/v1/sales/returns');
+}
+
+export function createSaleOrder(body) {
+  return client.post('/api/v1/sales/orders', body);
+}
+
+export function calculateSaleOrder(body) {
+  return client.post('/api/v1/sales/orders/calculate', body);
+}
+
+export function paySaleOrder(id, body) {
+  return client.post(`/api/v1/sales/orders/${id}/pay`, body);
+}
+
+export function cancelSaleOrder(id) {
+  return client.post(`/api/v1/sales/orders/${id}/cancel`);
+}
+
+export function refundSaleOrder(id, body) {
+  return client.post(`/api/v1/sales/orders/${id}/refund`, body);
+}
+
+export function fetchTraceCodes(traceCode) {
+  return client.get('/api/v1/sales/trace-codes', { params: { traceCode } });
+}
+
+// ── 出入库管理 ──────────────────────────────────────────────────────────────
+export function outboundBulk(body) {
+  return client.post('/api/inventory/outbound', body);
+}
+
+// ── 调拨配送 ────────────────────────────────────────────────────────────────
+export function fetchTransferDetail(id) {
+  return client.get(`/api/v1/transfers/${id}`);
+}
+
+export function createTransfer(body) {
+  return client.post('/api/v1/transfers', body);
+}
+
+export function dispatchTransfer(id, body) {
+  return client.post(`/api/v1/transfers/${id}/dispatch`, body);
+}
+
+export function signTransfer(id, body) {
+  return client.post(`/api/v1/transfers/${id}/sign`, body);
+}
+
+// ── 盘点损益 ────────────────────────────────────────────────────────────────
+export function createStocktake(body) {
+  return client.post('/api/v1/stocktakes', body);
+}
+
+export function approveStocktake(id, body) {
+  return client.post(`/api/v1/stocktakes/${id}/approve`, body);
+}
+
+export function rejectStocktake(id, body) {
+  return client.post(`/api/v1/stocktakes/${id}/reject`, body);
+}
+
+// ── 质量召回 ────────────────────────────────────────────────────────────────
+export function createRecall(body) {
+  return client.post('/api/v1/quality/recalls', body);
+}
+
+export function executeRecall(id, body) {
+  return client.post(`/api/v1/quality/recalls/${id}/execute`, body);
+}
+
+export function completeRecall(id, body) {
+  return client.post(`/api/v1/quality/recalls/${id}/complete`, body);
+}
+
+// ── 药品档案 ────────────────────────────────────────────────────────────────
+export function fetchDrugDetail(id) {
+  return client.get(`/api/drugs/${id}`);
+}
+
+export function createDrug(body) {
+  return client.post('/api/drugs', body);
+}
+
+export function updateDrug(id, body) {
+  return client.patch(`/api/drugs/${id}`, body);
+}
+
+// ── 系统管理/IAM ────────────────────────────────────────────────────────────
+export function createUser(body) {
+  return client.post('/api/v1/iam/users', body);
+}
+
+export function assignUserRoles(id, roleIds) {
+  return client.post(`/api/v1/iam/users/${id}/roles`, { roleIds });
+}
+
+export function createRole(body) {
+  return client.post('/api/v1/iam/roles', body);
+}
+
+export function deleteUser(id) {
+  return client.delete(`/api/v1/iam/users/${id}`);
+}
+
+export function deleteRole(id) {
+  return client.delete(`/api/v1/iam/roles/${id}`);
+}
+
+export function assignRolePerms(id, permissionIds) {
+  return client.post(`/api/v1/iam/roles/${id}/permissions`, { permissionIds });
+}
+
+// ── 发药确认 ────────────────────────────────────────────────────────────────
+export function dispensePrescription(id, body) {
+  return client.post(`/api/v1/prescriptions/${id}/dispense`, body);
+}
