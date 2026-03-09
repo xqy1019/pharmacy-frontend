@@ -9,6 +9,7 @@ import {
 import Modal from '../components/Modal';
 import Pager from '../components/Pager';
 import SummaryCard from '../components/SummaryCard';
+import { DEFAULT_WAREHOUSE_ID } from '../config/warehouse';
 import { useToast } from '../context/ToastContext';
 import { useAsyncData } from '../hooks/useAsyncData';
 import { formatDate, formatDateTime, formatNumber } from '../utils/formatters';
@@ -47,11 +48,15 @@ function InboundModal({ onClose, onSuccess }) {
   async function handleSubmit() {
     const invalid = items.find((i) => !i.drugName.trim() || !i.batchNo.trim() || !i.quantity);
     if (invalid) { setError('药品名称、批号、数量为必填项'); return; }
+    const negQty = items.find((i) => Number(i.quantity) <= 0);
+    if (negQty) { setError(`「${negQty.drugName}」数量必须大于 0`); return; }
+    const negCost = items.find((i) => i.unitCost !== '' && Number(i.unitCost) < 0);
+    if (negCost) { setError(`「${negCost.drugName}」单价不能为负数`); return; }
     setError('');
     setSubmitting(true);
     try {
       await inboundBulk({
-        warehouseId: 1,
+        warehouseId: DEFAULT_WAREHOUSE_ID,
         sourceType: 'MANUAL',
         items: items.map((i) => ({
           drugName: i.drugName,
@@ -177,11 +182,15 @@ function OutboundModal({ batches, onClose, onSuccess }) {
   async function handleSubmit() {
     if (!batchId) { setError('请选择批次'); return; }
     if (!quantity || Number(quantity) <= 0) { setError('请填写有效数量'); return; }
+    const maxQty = Number(selectedBatch?.availableQty ?? selectedBatch?.remainingQty ?? 0);
+    if (maxQty > 0 && Number(quantity) > maxQty) {
+      setError(`出库数量（${quantity}）超过可用库存（${maxQty}）`); return;
+    }
     setError('');
     setSubmitting(true);
     try {
       await outboundBulk({
-        warehouseId: 1,
+        warehouseId: DEFAULT_WAREHOUSE_ID,
         drugId: selectedBatch.drugId,
         qty: String(quantity),
         batchId: Number(batchId),
@@ -280,9 +289,9 @@ export default function WarehousePage() {
   const [showOutbound, setShowOutbound] = useState(false);
   const toast = useToast();
 
-  const { data: overview } = useAsyncData(() => fetchInventoryOverview(1), [refreshKey]);
-  const { data: transactions, loading: txLoading } = useAsyncData(() => fetchInventoryTransactions(1), [refreshKey]);
-  const { data: batches } = useAsyncData(() => fetchInventoryBatches(1), [refreshKey]);
+  const { data: overview } = useAsyncData(() => fetchInventoryOverview(DEFAULT_WAREHOUSE_ID), [refreshKey]);
+  const { data: transactions, loading: txLoading } = useAsyncData(() => fetchInventoryTransactions(DEFAULT_WAREHOUSE_ID), [refreshKey]);
+  const { data: batches } = useAsyncData(() => fetchInventoryBatches(DEFAULT_WAREHOUSE_ID), [refreshKey]);
 
   const refresh = () => { setRefreshKey((v) => v + 1); setPage(1); };
 
@@ -317,7 +326,7 @@ export default function WarehousePage() {
       )}
 
       {/* 主工作区 */}
-      <section className="rounded-[28px] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <section className="rounded-2xl border border-white bg-white shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         {/* 工具栏 */}
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3">
           <span className="text-sm font-semibold text-slate-700">出入库流水</span>

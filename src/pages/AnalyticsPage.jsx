@@ -45,7 +45,7 @@ function SectionTitle({ children, badge }) {
 function ABCTable({ data }) {
   const [filter, setFilter] = useState('');
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
 
   const filtered = useMemo(() => {
     if (!filter) return data;
@@ -112,7 +112,7 @@ function ABCTable({ data }) {
         </table>
       </div>
       {totalPages > 1 && (
-        <Pager total={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={() => {}} />
+        <Pager total={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
       )}
     </div>
   );
@@ -236,7 +236,7 @@ function AnalyticsPage() {
   }), [data]);
 
   if (loading) {
-    return <div className="rounded-3xl border border-slate-200 bg-white p-10 text-slate-700 shadow-sm">正在加载分析数据...</div>;
+    return <div className="rounded-2xl border border-white bg-white p-10 text-slate-700 shadow-sm">正在加载分析数据...</div>;
   }
   if (error) {
     return <div className="rounded-3xl border border-rose-200 bg-rose-50 p-10 text-rose-700">数据加载失败：{error}</div>;
@@ -261,7 +261,7 @@ function AnalyticsPage() {
       </section>
 
       {/* ABC 分析 */}
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-white bg-white p-6 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         <SectionTitle badge={`共 ${abcList.length} 品种`}>ABC 药品分类分析</SectionTitle>
         <div className="mb-5 grid gap-3 sm:grid-cols-3">
           {(['A', 'B', 'C'] ).map((cls) => {
@@ -287,7 +287,7 @@ function AnalyticsPage() {
       {/* 库存健康度 */}
       <section className="grid gap-6 xl:grid-cols-2">
         {/* 缺货率看板 */}
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-white bg-white p-6 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
           <SectionTitle badge={`均值 ${avgStockoutRate}%`}>各品类缺货率</SectionTitle>
           <div className="mb-4 grid grid-cols-3 gap-3">
             <div className="rounded-2xl bg-rose-50 p-3 text-center">
@@ -313,7 +313,7 @@ function AnalyticsPage() {
         </div>
 
         {/* 效期损耗风险 */}
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-white bg-white p-6 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
           <SectionTitle badge="30天内效期">效期损耗风险 Top 10</SectionTitle>
           <div className="overflow-hidden rounded-xl border border-slate-200">
             <table className="min-w-full text-xs">
@@ -355,7 +355,7 @@ function AnalyticsPage() {
 
       {/* 趋势 + 品类分布 */}
       <section className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-white bg-white p-6 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-base font-semibold text-slate-800">销售趋势</h3>
             <div className="flex gap-1">

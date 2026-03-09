@@ -82,7 +82,7 @@ export default function SystemAuditPage() {
           { label: '操作用户数', value: stats.users, sub: '不同账号', color: 'from-blue-500 to-cyan-500' },
           { label: '涉及模块', value: stats.modules, sub: '操作模块种类', color: 'from-violet-500 to-purple-500' },
         ].map((s) => (
-          <article key={s.label} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          <article key={s.label} className="rounded-2xl border border-white bg-white p-5 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-slate-500">{s.label}</p>
@@ -96,7 +96,7 @@ export default function SystemAuditPage() {
       </section>
 
       {/* 日志表格 */}
-      <section className="rounded-[28px] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <section className="rounded-2xl border border-white bg-white shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3">
           <h3 className="text-sm font-semibold text-slate-700">操作日志</h3>
           <select value={module} onChange={(e) => setModule(e.target.value)}

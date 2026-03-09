@@ -254,6 +254,12 @@ export default function SystemRolesPage() {
   const SORT_ORDER = ['admin', 'supervisor', 'outpatient_pharmacist', 'inpatient_pharmacist',
     'warehouse_pharmacist', 'anesthesia_pharmacist', 'anesthesiologist', 'dispense_clerk'];
 
+  const BUILT_IN_ROLES = new Set([
+    'admin', 'supervisor', 'outpatient_pharmacist', 'inpatient_pharmacist',
+    'warehouse_pharmacist', 'anesthesia_pharmacist', 'anesthesiologist',
+    'dispense_clerk', 'pharmacist', 'purchaser', 'finance', 'viewer',
+  ]);
+
   const filtered = useMemo(() => {
     if (!roles) return [];
     const kw = applied.trim().toLowerCase();
@@ -275,6 +281,11 @@ export default function SystemRolesPage() {
 
   async function handleDelete() {
     if (!deleteTarget) return;
+    if (BUILT_IN_ROLES.has(deleteTarget.roleCode)) {
+      toast.error('系统内置角色不可删除');
+      setDeleteTarget(null);
+      return;
+    }
     setDeleting(true);
     try {
       await deleteRole(deleteTarget.id);
@@ -297,7 +308,7 @@ export default function SystemRolesPage() {
           { label: '启用角色', value: (roles || []).filter((r) => r.status === 'ACTIVE').length, sub: '当前可用', color: 'from-emerald-500 to-teal-500' },
           { label: '权限条目', value: (permissions || []).length, sub: '系统权限总数', color: 'from-cyan-500 to-blue-500' },
         ].map((s) => (
-          <article key={s.label} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          <article key={s.label} className="rounded-2xl border border-white bg-white p-5 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-slate-500">{s.label}</p>
@@ -311,7 +322,7 @@ export default function SystemRolesPage() {
       </section>
 
       {/* 表格区 */}
-      <section className="rounded-[28px] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <section className="rounded-2xl border border-white bg-white shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3">
           <h3 className="text-sm font-semibold text-slate-700">角色列表</h3>
           <div className="ml-4 flex items-center gap-2">
@@ -386,12 +397,21 @@ export default function SystemRolesPage() {
                               <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round"/>
                             </svg>
                           </button>
-                          <button onClick={() => setDeleteTarget(role)} title="删除角色"
-                            className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500">
-                            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                              <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
-                            </svg>
-                          </button>
+                          {BUILT_IN_ROLES.has(role.roleCode) ? (
+                            <span title="系统内置角色不可删除"
+                              className="grid h-7 w-7 place-items-center rounded-lg border border-slate-100 text-slate-200 cursor-not-allowed">
+                              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                                <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
+                              </svg>
+                            </span>
+                          ) : (
+                            <button onClick={() => setDeleteTarget(role)} title="删除角色"
+                              className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500">
+                              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                                <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       </PermGuard>
                     </td>

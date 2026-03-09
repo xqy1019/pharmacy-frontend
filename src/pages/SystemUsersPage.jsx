@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { assignUserRoles, createUser, deleteUser, fetchRoles, fetchUsers } from '../api/pharmacy';
+import { assignUserRoles, createUser, deleteUser, fetchRoles, fetchUsers, updateUser } from '../api/pharmacy';
 import Modal from '../components/Modal';
 import Pager from '../components/Pager';
 import PermGuard from '../components/PermGuard';
@@ -204,6 +204,62 @@ function CreateUserModal({ roles, onClose, onSuccess }) {
   );
 }
 
+// ── 编辑用户 Modal ────────────────────────────────────────────────────────────
+function EditUserModal({ targetUser, onClose, onSuccess }) {
+  const [form, setForm] = useState({ fullName: targetUser.fullName || '', department: targetUser.department || '' });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const toast = useToast();
+
+  async function handleSave() {
+    if (!form.fullName.trim()) { setError('姓名不能为空'); return; }
+    setSaving(true); setError('');
+    try {
+      await updateUser(targetUser.id, { fullName: form.fullName.trim(), department: form.department.trim() || undefined });
+      toast.success('用户信息已更新');
+      onSuccess();
+    } catch (e) {
+      setError(e?.response?.data?.message || '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-md">
+      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800">编辑用户</h2>
+          <p className="text-sm text-slate-400 font-mono">{targetUser.username}</p>
+        </div>
+        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <div className="space-y-4 px-6 py-5">
+        <div>
+          <label className="mb-1 block text-xs text-slate-500">真实姓名 *</label>
+          <input value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
+            placeholder="姓名"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-300" />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-slate-500">所属科室</label>
+          <input value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
+            placeholder="如：门诊药房"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-300" />
+        </div>
+        {error && <p className="text-sm text-rose-600">{error}</p>}
+      </div>
+      <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
+        <button onClick={handleSave} disabled={saving}
+          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white hover:bg-cyan-700 disabled:opacity-50 transition">
+          {saving ? '保存中...' : '保存'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 // ── 主页面 ───────────────────────────────────────────────────────────────────
 export default function SystemUsersPage() {
   const [refresh, setRefresh] = useState(0);
@@ -213,10 +269,27 @@ export default function SystemUsersPage() {
   const [pageSize] = useState(12);
   const [showCreate, setShowCreate] = useState(false);
   const [assignTarget, setAssignTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [togglingId, setTogglingId] = useState(null);
+  const toast = useToast();
 
   const { data: users, loading } = useAsyncData(fetchUsers, [refresh]);
   const { data: roles } = useAsyncData(fetchRoles, [refresh]);
+
+  async function handleToggleStatus(u) {
+    const newStatus = u.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    setTogglingId(u.id);
+    try {
+      await updateUser(u.id, { status: newStatus });
+      toast.success(newStatus === 'ACTIVE' ? '已启用用户' : '已停用用户');
+      doRefresh();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || '操作失败');
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   const filtered = useMemo(() => {
     if (!users) return [];
@@ -246,7 +319,7 @@ export default function SystemUsersPage() {
           { label: '在用账号', value: stats.active, sub: '状态启用', color: 'from-emerald-500 to-teal-500' },
           { label: '角色总数', value: stats.roles, sub: '已配置角色', color: 'from-violet-500 to-purple-500' },
         ].map((s) => (
-          <article key={s.label} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          <article key={s.label} className="rounded-2xl border border-white bg-white p-5 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-slate-500">{s.label}</p>
@@ -260,7 +333,7 @@ export default function SystemUsersPage() {
       </section>
 
       {/* 表格区 */}
-      <section className="rounded-[28px] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <section className="rounded-2xl border border-white bg-white shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3">
           <h3 className="text-sm font-semibold text-slate-700">用户列表</h3>
           <div className="ml-4 flex items-center gap-2">
@@ -332,6 +405,20 @@ export default function SystemUsersPage() {
                           </button>
                         </PermGuard>
                         <PermGuard perm="iam.user.create">
+                          <button onClick={() => setEditTarget(u)}
+                            className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 transition">
+                            编辑
+                          </button>
+                          <button
+                            onClick={() => handleToggleStatus(u)}
+                            disabled={togglingId === u.id}
+                            className={`rounded-lg border px-2.5 py-1 text-xs transition disabled:opacity-50 ${
+                              u.status === 'ACTIVE'
+                                ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100'
+                                : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                            }`}>
+                            {togglingId === u.id ? '...' : (u.status === 'ACTIVE' ? '停用' : '启用')}
+                          </button>
                           <button onClick={() => setDeleteTarget(u)} title="删除用户"
                             className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500">
                             <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
@@ -361,6 +448,11 @@ export default function SystemUsersPage() {
         <AssignRoleModal targetUser={assignTarget} roles={roles}
           onClose={() => setAssignTarget(null)}
           onSuccess={() => { setAssignTarget(null); doRefresh(); }} />
+      )}
+      {editTarget && (
+        <EditUserModal targetUser={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSuccess={() => { setEditTarget(null); doRefresh(); }} />
       )}
       {deleteTarget && (
         <DeleteUserModal targetUser={deleteTarget}

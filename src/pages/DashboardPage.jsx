@@ -217,7 +217,7 @@ function DashboardPage() {
   }), [overview]);
 
   if (loading || !overview) {
-    return <div className="rounded-3xl border border-slate-200 bg-white p-10 text-slate-700 shadow-sm">正在加载首页数据...</div>;
+    return <div className="rounded-2xl border border-white bg-white p-10 text-slate-600 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">正在加载首页数据...</div>;
   }
 
   if (error) {
@@ -248,7 +248,7 @@ function DashboardPage() {
         {/* 右：待处理事项 + 快捷入口 */}
         <div className="flex flex-col gap-4">
           {/* 待处理事项 + 底部3个独立快捷入口 */}
-          <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-white bg-white p-4 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-800">待处理事项</h3>
               {(pendingRx + warningCount) > 0 && (
@@ -288,7 +288,7 @@ function DashboardPage() {
         <ChartCard title="低周转药品 Top 5" subtitle="按库存量监控" option={barOption} height={220} />
 
         {/* 近效期预警列表 */}
-        <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-white bg-white p-4 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-800">近效期预警</h3>
             <Link to="/inventory/alerts" className="text-xs text-cyan-600 hover:underline">查看全部</Link>

@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   approveProcurementOrder,
+  cancelProcurementOrder,
   createProcurementOrder,
   fetchProcurementOrderDetail,
   fetchProcurementOrders,
   fetchProcurementOverview,
   receiveProcurementOrder,
-  submitProcurementOrder
+  submitProcurementOrder,
 } from '../api/pharmacy';
 import Modal from '../components/Modal';
 import Pager from '../components/Pager';
 import SummaryCard from '../components/SummaryCard';
+import { DEFAULT_WAREHOUSE_ID } from '../config/warehouse';
 import { useToast } from '../context/ToastContext';
 import { useAsyncData } from '../hooks/useAsyncData';
 import { formatDate, formatNumber, formatPercent } from '../utils/formatters';
@@ -271,11 +273,22 @@ function ReceiveModal({ orderId, onClose, onSuccess }) {
   }
 
   async function handleSubmit() {
+    // 超量校验
+    for (const l of lines) {
+      if (Number(l.receivedQty) > Number(l.orderedQty)) {
+        setError(`「${l.drugName}」实收量（${l.receivedQty}）不能超过订购量（${l.orderedQty}）`);
+        return;
+      }
+      if (Number(l.acceptedQty) > Number(l.receivedQty)) {
+        setError(`「${l.drugName}」验收量（${l.acceptedQty}）不能超过实收量（${l.receivedQty}）`);
+        return;
+      }
+    }
     setSubmitting(true);
     setError('');
     try {
       await receiveProcurementOrder(orderId, {
-        warehouseId: 1,
+        warehouseId: DEFAULT_WAREHOUSE_ID,
         lines: lines.map((l) => ({
           itemId: l.itemId,
           receivedQty: l.receivedQty,
@@ -331,14 +344,14 @@ function ReceiveModal({ orderId, onClose, onSuccess }) {
                         <td className="px-3 py-2 font-medium text-slate-700">{line.drugName}</td>
                         <td className="px-3 py-2 text-slate-500">{line.orderedQty}</td>
                         <td className="px-3 py-2">
-                          <input type="number" min="0" value={line.receivedQty}
+                          <input type="number" min="0" max={line.orderedQty} value={line.receivedQty}
                             onChange={(e) => updateLine(idx, 'receivedQty', e.target.value)}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-300" />
+                            className={`w-full rounded-lg border bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-300 ${Number(line.receivedQty) > Number(line.orderedQty) ? 'border-rose-400 text-rose-600' : 'border-slate-200'}`} />
                         </td>
                         <td className="px-3 py-2">
-                          <input type="number" min="0" value={line.acceptedQty}
+                          <input type="number" min="0" max={line.receivedQty} value={line.acceptedQty}
                             onChange={(e) => updateLine(idx, 'acceptedQty', e.target.value)}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-300" />
+                            className={`w-full rounded-lg border bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-300 ${Number(line.acceptedQty) > Number(line.receivedQty) ? 'border-rose-400 text-rose-600' : 'border-slate-200'}`} />
                         </td>
                         <td className="px-3 py-2">
                           <input value={line.batchNo}
@@ -387,6 +400,7 @@ function ProcurementPage() {
   const [selectedApprove, setSelectedApprove] = useState(null);
   const [selectedReceive, setSelectedReceive] = useState(null);
   const [submittingId, setSubmittingId] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
   const toast = useToast();
 
   const { data, loading, error } = useAsyncData(async () => {
@@ -395,6 +409,20 @@ function ProcurementPage() {
   }, [refreshKey]);
 
   const refresh = () => { setRefreshKey((v) => v + 1); setPage(1); };
+
+  async function handleCancelOrder(order) {
+    if (!window.confirm(`确认撤销采购单「${order.orderNo}」？此操作不可撤销。`)) return;
+    setCancellingId(order.id);
+    try {
+      await cancelProcurementOrder(order.id);
+      toast.success('采购单已撤销');
+      refresh();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || '撤销失败');
+    } finally {
+      setCancellingId(null);
+    }
+  }
 
   async function handleSubmitOrder(order) {
     setSubmittingId(order.id);
@@ -427,7 +455,7 @@ function ProcurementPage() {
   const overview = data?.overview;
 
   if (loading || !overview) {
-    return <div className="rounded-3xl border border-slate-200 bg-white p-10 text-slate-700 shadow-sm">正在加载采购数据...</div>;
+    return <div className="rounded-2xl border border-white bg-white p-10 text-slate-700 shadow-sm">正在加载采购数据...</div>;
   }
   if (error) {
     return <div className="rounded-3xl border border-rose-200 bg-rose-50 p-10 text-rose-700">数据加载失败：{error}</div>;
@@ -447,7 +475,7 @@ function ProcurementPage() {
       </section>
 
       {/* 订单列表 */}
-      <section className="rounded-[28px] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <section className="rounded-2xl border border-white bg-white shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         {/* 筛选栏 */}
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3">
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -522,10 +550,16 @@ function ProcurementPage() {
                     <td className="px-5 py-3 last:pr-6">
                       <div className="flex items-center gap-2">
                         {order.status === 'DRAFT' && (
-                          <button disabled={submittingId === order.id} onClick={() => handleSubmitOrder(order)}
-                            className="rounded-lg bg-amber-500 px-3 py-1 text-xs text-white transition hover:bg-amber-600 disabled:opacity-50">
-                            提交审批
-                          </button>
+                          <>
+                            <button disabled={submittingId === order.id} onClick={() => handleSubmitOrder(order)}
+                              className="rounded-lg bg-amber-500 px-3 py-1 text-xs text-white transition hover:bg-amber-600 disabled:opacity-50">
+                              提交审批
+                            </button>
+                            <button disabled={cancellingId === order.id} onClick={() => handleCancelOrder(order)}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
+                              {cancellingId === order.id ? '撤销中...' : '撤销'}
+                            </button>
+                          </>
                         )}
                         {order.status === 'PENDING_APPROVAL' && (
                           <button onClick={() => setSelectedApprove(order)}

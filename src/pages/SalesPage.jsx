@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  approveReturn,
   cancelSaleOrder,
   createSaleOrder,
   fetchInventoryBatches,
@@ -8,6 +9,7 @@ import {
   fetchTraceCodes,
   paySaleOrder,
   refundSaleOrder,
+  rejectReturn,
 } from '../api/pharmacy';
 import Modal from '../components/Modal';
 import Pager from '../components/Pager';
@@ -334,6 +336,85 @@ function RefundModal({ order, onClose, onSuccess }) {
   );
 }
 
+// ── 退货审核 Modal ────────────────────────────────────────────────────────────
+function ReviewReturnModal({ returnRecord, onClose, onSuccess }) {
+  const [pass, setPass] = useState(true);
+  const [note, setNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const toast = useToast();
+
+  async function handleSubmit() {
+    setSubmitting(true);
+    setError('');
+    try {
+      if (pass) {
+        await approveReturn(returnRecord.id, { reviewNote: note || undefined });
+        toast.success('退货已审核通过');
+      } else {
+        await rejectReturn(returnRecord.id, { reviewNote: note || undefined });
+        toast.success('退货已驳回');
+      }
+      onSuccess();
+    } catch (e) {
+      setError(e?.response?.data?.message || e.message || '操作失败');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-md">
+      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <h2 className="text-lg font-semibold text-slate-800">退货审核</h2>
+        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <div className="space-y-4 px-6 py-4">
+        <div className="rounded-xl bg-slate-50 p-4 text-sm space-y-2">
+          <div className="flex justify-between text-slate-500">
+            <span>退货单号</span><span className="font-mono font-medium text-slate-800">{returnRecord.returnNo || '--'}</span>
+          </div>
+          <div className="flex justify-between text-slate-500">
+            <span>原订单</span><span className="font-mono text-slate-700">{returnRecord.originalOrderNo || '--'}</span>
+          </div>
+          <div className="flex justify-between text-slate-500">
+            <span>退款金额</span><span className="font-bold text-rose-700">¥{formatNumber(returnRecord.refundAmount || returnRecord.totalAmount)}</span>
+          </div>
+          {returnRecord.returnReason && (
+            <div className="flex justify-between text-slate-500">
+              <span>退货原因</span><span className="text-slate-700">{returnRecord.returnReason}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-6">
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="radio" checked={pass} onChange={() => setPass(true)} className="accent-emerald-500" />
+            <span className="text-sm font-medium text-emerald-700">审核通过</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="radio" checked={!pass} onChange={() => setPass(false)} className="accent-rose-500" />
+            <span className="text-sm font-medium text-rose-700">驳回</span>
+          </label>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-slate-500">审核意见（可选）</label>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3}
+            placeholder="填写审核意见..."
+            className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-cyan-300" />
+        </div>
+        {error && <p className="text-sm text-rose-600">{error}</p>}
+      </div>
+      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
+        <button onClick={handleSubmit} disabled={submitting}
+          className={`rounded-xl px-5 py-2 text-sm text-white transition disabled:opacity-50 ${pass ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-500 hover:bg-rose-600'}`}>
+          {submitting ? '提交中...' : (pass ? '确认通过' : '确认驳回')}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 // ── 追溯查询 Modal ────────────────────────────────────────────────────────────
 function TraceModal({ onClose }) {
   const [traceCode, setTraceCode] = useState('');
@@ -427,6 +508,7 @@ export default function SalesPage() {
   const [showTrace, setShowTrace] = useState(false);
   const [payOrder, setPayOrder] = useState(null);
   const [refundOrder, setRefundOrder] = useState(null);
+  const [reviewReturn, setReviewReturn] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
   const toast = useToast();
 
@@ -502,7 +584,7 @@ export default function SalesPage() {
       </section>
 
       {/* 主工作区 */}
-      <section className="rounded-[28px] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <section className="rounded-2xl border border-white bg-white shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         {/* Tab & 工具栏 */}
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3">
           <div className="flex rounded-xl border border-slate-200 overflow-hidden">
@@ -615,7 +697,8 @@ export default function SalesPage() {
                     <th className="px-5 py-3 font-medium">退款金额</th>
                     <th className="px-5 py-3 font-medium">退货原因</th>
                     <th className="px-5 py-3 font-medium">状态</th>
-                    <th className="px-5 py-3 font-medium pr-6">时间</th>
+                    <th className="px-5 py-3 font-medium">时间</th>
+                    <th className="px-5 py-3 font-medium pr-6">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -627,7 +710,15 @@ export default function SalesPage() {
                       <td className="px-5 py-3 font-semibold text-rose-700">¥{formatNumber(r.refundAmount || r.totalAmount)}</td>
                       <td className="px-5 py-3 text-slate-500">{r.returnReason || '--'}</td>
                       <td className="px-5 py-3"><Badge status={r.status} map={RETURN_STATUS} /></td>
-                      <td className="px-5 py-3 pr-6 text-xs text-slate-400">{formatDateTime(r.createdAt)}</td>
+                      <td className="px-5 py-3 text-xs text-slate-400">{formatDateTime(r.createdAt)}</td>
+                      <td className="px-5 py-3 pr-6">
+                        {r.status === 'PENDING' && (
+                          <button onClick={() => setReviewReturn(r)}
+                            className="rounded-lg bg-amber-500 px-3 py-1 text-xs text-white transition hover:bg-amber-600">
+                            审核
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                   {pagedRows.length === 0 && (
@@ -654,7 +745,7 @@ export default function SalesPage() {
       {showCreate && (
         <CreateOrderModal
           onClose={() => setShowCreate(false)}
-          onSuccess={() => { setShowCreate(false); refresh(); toast.success('订单创建成功，请及时收款'); }}
+          onSuccess={() => { setShowCreate(false); refresh(); setStatusFilter('PENDING'); setPage(1); toast.success('订单创建成功，请及时收款'); }}
         />
       )}
       {payOrder && (
@@ -672,6 +763,13 @@ export default function SalesPage() {
         />
       )}
       {showTrace && <TraceModal onClose={() => setShowTrace(false)} />}
+      {reviewReturn && (
+        <ReviewReturnModal
+          returnRecord={reviewReturn}
+          onClose={() => setReviewReturn(null)}
+          onSuccess={() => { setReviewReturn(null); refresh(); }}
+        />
+      )}
     </div>
   );
 }

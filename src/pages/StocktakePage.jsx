@@ -7,6 +7,7 @@ import {
 } from '../api/pharmacy';
 import Modal from '../components/Modal';
 import Pager from '../components/Pager';
+import { DEFAULT_WAREHOUSE_ID } from '../config/warehouse';
 import { useToast } from '../context/ToastContext';
 import { useAsyncData } from '../hooks/useAsyncData';
 import { formatDateTime, formatNumber } from '../utils/formatters';
@@ -29,10 +30,15 @@ function Badge({ status }) {
 }
 
 // ── 新建盘点记录 Modal ────────────────────────────────────────────────────────
-function CreateStocktakeModal({ onClose, onSuccess }) {
+function CreateStocktakeModal({ onClose, onSuccess, initialData }) {
   const [form, setForm] = useState({
-    type: 'LOSS', drugName: '', batchNo: '',
-    systemQty: '', actualQty: '', reason: '', reasonCategory: 'DAMAGE'
+    type: initialData?.type || 'LOSS',
+    drugName: initialData?.drugName || '',
+    batchNo: initialData?.batchNo || '',
+    systemQty: initialData?.systemQty != null ? String(initialData.systemQty) : '',
+    actualQty: initialData?.actualQty != null ? String(initialData.actualQty) : '',
+    reason: initialData?.reason || '',
+    reasonCategory: initialData?.reasonCategory || 'DAMAGE',
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -53,7 +59,7 @@ function CreateStocktakeModal({ onClose, onSuccess }) {
         actualQty: form.actualQty,
         reason: form.reason || undefined,
         reasonCategory: form.reasonCategory || undefined,
-        warehouseId: 1,
+        warehouseId: DEFAULT_WAREHOUSE_ID,
       });
       onSuccess();
     } catch (e) {
@@ -223,6 +229,7 @@ export default function StocktakePage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showCreate, setShowCreate] = useState(false);
+  const [resubmitRecord, setResubmitRecord] = useState(null); // 驳回后重新提交
   const [reviewRecord, setReviewRecord] = useState(null);
   const toast = useToast();
 
@@ -265,7 +272,7 @@ export default function StocktakePage() {
           { label: '盘盈', value: formatNumber(stats.profit), sub: '已审批', cls: 'text-emerald-700' },
           { label: '盘亏', value: formatNumber(stats.loss), sub: '已审批', cls: 'text-rose-700' },
         ].map((item) => (
-          <article key={item.label} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          <article key={item.label} className="rounded-2xl border border-white bg-white p-5 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
             <p className="text-sm text-slate-500">{item.label}</p>
             <strong className={`mt-3 block text-2xl ${item.cls}`}>{item.value}</strong>
             <p className="mt-1 text-xs text-slate-400">{item.sub}</p>
@@ -274,7 +281,7 @@ export default function StocktakePage() {
       </section>
 
       {/* 主工作区 */}
-      <section className="rounded-[28px] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <section className="rounded-2xl border border-white bg-white shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3">
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 outline-none">
@@ -344,6 +351,12 @@ export default function StocktakePage() {
                             审批
                           </button>
                         )}
+                        {r.status === 'REJECTED' && (
+                          <button onClick={() => setResubmitRecord(r)}
+                            className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs text-cyan-700 transition hover:bg-cyan-100">
+                            重新提交
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -378,6 +391,17 @@ export default function StocktakePage() {
             setReviewRecord(null);
             refresh();
             toast.success('审批操作完成');
+          }}
+        />
+      )}
+      {resubmitRecord && (
+        <CreateStocktakeModal
+          initialData={resubmitRecord}
+          onClose={() => setResubmitRecord(null)}
+          onSuccess={() => {
+            setResubmitRecord(null);
+            refresh();
+            toast.success('已重新提交盘点记录');
           }}
         />
       )}

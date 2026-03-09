@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { fetchLowStockAlerts, fetchNearExpiryAlerts, freezeBatch } from '../api/pharmacy';
+import { acknowledgeStockAlert, fetchLowStockAlerts, fetchNearExpiryAlerts, freezeBatch } from '../api/pharmacy';
 import Modal from '../components/Modal';
 import Pager from '../components/Pager';
 import SummaryCard from '../components/SummaryCard';
+import { useToast } from '../context/ToastContext';
 import { useAsyncData } from '../hooks/useAsyncData';
 import { formatDate, formatNumber } from '../utils/formatters';
 
@@ -99,12 +100,15 @@ export default function AlertsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   // 本地已知晓集合（低库存用，key = drugId）
   const [acknowledgedIds, setAcknowledgedIds] = useState(new Set());
+  // 正在提交知晓的 drugId 集合
+  const [acknowledgingIds, setAcknowledgingIds] = useState(new Set());
   // 已冻结批次集合（近效期用，key = batchId）
   const [frozenBatchIds, setFrozenBatchIds] = useState(new Set());
   // 冻结 Modal
   const [freezeTarget, setFreezeTarget] = useState(null);
   // 是否只显示待处理
   const [onlyPending, setOnlyPending] = useState(true);
+  const toast = useToast();
 
   const { data, loading, error } = useAsyncData(
     async () => {
@@ -153,7 +157,7 @@ export default function AlertsPage() {
   const handledCount = useMemo(() => allRows.filter((r) => r._handled).length, [allRows]);
 
   if (loading || !data) {
-    return <div className="rounded-3xl border border-slate-200 bg-white p-10 text-slate-700 shadow-sm">正在加载预警数据...</div>;
+    return <div className="rounded-2xl border border-white bg-white p-10 text-slate-700 shadow-sm">正在加载预警数据...</div>;
   }
 
   if (error) {
@@ -169,7 +173,7 @@ export default function AlertsPage() {
         <SummaryCard label="近效期批次" value={formatNumber(counts.expiry)} detail={`已冻结 ${frozenBatchIds.size} 批`} accent="from-purple-500 to-violet-500" />
       </section>
 
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-white bg-white p-6 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         {/* Tab 栏 + 控制 */}
         <div className="mb-4 flex items-center justify-between gap-4 border-b border-slate-200 pb-3">
           <div className="flex gap-6">
@@ -241,9 +245,21 @@ export default function AlertsPage() {
                         <span className="text-xs text-slate-400">已处置</span>
                       ) : row._type === 'low' ? (
                         <button type="button"
-                          onClick={() => setAcknowledgedIds((prev) => new Set([...prev, row.drugId]))}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:bg-slate-50">
-                          标记已知晓
+                          disabled={acknowledgingIds.has(row.drugId)}
+                          onClick={async () => {
+                            setAcknowledgingIds((prev) => new Set([...prev, row.drugId]));
+                            try {
+                              await acknowledgeStockAlert(row.drugId);
+                              setAcknowledgedIds((prev) => new Set([...prev, row.drugId]));
+                              toast.success('已标记知晓');
+                            } catch (e) {
+                              toast.error(e?.response?.data?.message || '标记失败，请重试');
+                            } finally {
+                              setAcknowledgingIds((prev) => { const s = new Set(prev); s.delete(row.drugId); return s; });
+                            }
+                          }}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
+                          {acknowledgingIds.has(row.drugId) ? '处理中...' : '标记已知晓'}
                         </button>
                       ) : (
                         <button type="button"

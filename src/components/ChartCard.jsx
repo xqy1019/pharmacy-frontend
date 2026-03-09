@@ -34,12 +34,12 @@ function ChartCard({ title, subtitle, option, height = 320 }) {
   }, [option]);
 
   return (
-    <section className="rounded-[28px] border border-slate-200 bg-gradient-to-b from-[#fbfdfe] to-[#f4f8fb] p-5 shadow-[0_10px_24px_rgba(22,48,71,0.05)]">
+    <section className="rounded-2xl border border-white bg-white p-5 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
       {(title || subtitle) && (
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            {title && <h3 className="text-lg font-semibold text-slate-800">{title}</h3>}
-            {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+            {title && <h3 className="text-sm font-semibold text-slate-800">{title}</h3>}
+            {subtitle && <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>}
           </div>
         </div>
       )}

@@ -474,7 +474,7 @@ export default function SystemPage() {
           { label: '角色数量', value: formatNumber(stats.roles), detail: '权限分组', accent: 'from-emerald-500 to-green-500' },
           { label: '权限项目', value: formatNumber(stats.permissions), detail: '细粒度控制', accent: 'from-amber-500 to-orange-500' },
         ].map((item) => (
-          <article key={item.label} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          <article key={item.label} className="rounded-2xl border border-white bg-white p-5 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-slate-500">{item.label}</p>
@@ -488,7 +488,7 @@ export default function SystemPage() {
       </section>
 
       {/* 主工作区 */}
-      <section className="rounded-[28px] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <section className="rounded-2xl border border-white bg-white shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3">
           <div className="flex rounded-xl border border-slate-200 overflow-hidden">
             {availableTabs.map((t) => (

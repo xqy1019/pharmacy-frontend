@@ -58,7 +58,7 @@ function Pager({ total, page, pageSize, onPageChange, onPageSizeChange }) {
               onClick={() => onPageChange(n)}
               className={`min-w-[28px] rounded-lg border px-2 py-1.5 transition ${
                 n === page
-                  ? 'border-emerald-500 bg-emerald-500 font-medium text-white'
+                  ? 'border-indigo-500 bg-indigo-500 font-medium text-white'
                   : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
               }`}
             >
@@ -113,7 +113,7 @@ function LocationsPage() {
   }, [filtered, page, pageSize]);
 
   if (loading || !locations) {
-    return <div className="rounded-3xl border border-slate-200 bg-white p-10 text-slate-700 shadow-sm">正在加载货位数据...</div>;
+    return <div className="rounded-2xl border border-white bg-white p-10 text-slate-700 shadow-sm">正在加载货位数据...</div>;
   }
 
   if (error) {
@@ -139,7 +139,7 @@ function LocationsPage() {
         </article>
       </div>
 
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-white bg-white p-6 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex flex-1 gap-2">
             <input

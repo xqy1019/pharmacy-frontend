@@ -55,11 +55,11 @@ function ModulePage() {
   }, [filteredRows, page, pageSize]);
 
   if (!currentModule) {
-    return <div className="rounded-3xl border border-slate-200 bg-white p-10 text-slate-700 shadow-sm">页面不存在。</div>;
+    return <div className="rounded-2xl border border-white bg-white p-10 text-slate-700 shadow-sm">页面不存在。</div>;
   }
 
   if (loading || !content) {
-    return <div className="rounded-3xl border border-slate-200 bg-white p-10 text-slate-700 shadow-sm">正在加载 {currentModule.label} 数据...</div>;
+    return <div className="rounded-2xl border border-white bg-white p-10 text-slate-700 shadow-sm">正在加载 {currentModule.label} 数据...</div>;
   }
 
   if (error) {
@@ -80,7 +80,7 @@ function ModulePage() {
         ))}
       </section>
 
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <section className="rounded-2xl border border-white bg-white p-6 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
           <h3 className="text-sm font-semibold text-slate-700">{content.tableTitle}</h3>
           <div className="flex items-center gap-2">

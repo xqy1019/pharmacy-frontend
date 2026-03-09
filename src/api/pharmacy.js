@@ -1,4 +1,79 @@
 import client from './client';
+import { getStoredAuth } from '../utils/storage';
+
+// ── AI 流式工具 ──────────────────────────────────────────────────────────────
+
+/** 读取 SSE 流，通过回调逐步输出内容 */
+async function readSSEStream(response, { onChunk, onDone, onError }) {
+  const reader = response.body?.getReader();
+  if (!reader) { onError?.('无法读取响应流'); return; }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed === 'data: [DONE]') continue;
+        if (!trimmed.startsWith('data: ')) continue;
+        try {
+          const data = JSON.parse(trimmed.slice(6));
+          if (data.type === 'chunk') onChunk?.(data.content);
+          if (data.type === 'done') onDone?.();
+          if (data.type === 'error') onError?.(data.message);
+        } catch { /* 跳过解析异常行 */ }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function aiHeaders() {
+  const auth = getStoredAuth();
+  return {
+    'Content-Type': 'application/json',
+    ...(auth?.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
+    ...(auth?.user?.id ? { 'x-user-id': String(auth.user.id) } : {}),
+  };
+}
+
+/**
+ * 流式处方 AI 审核
+ * @param {number} prescriptionId
+ * @param {{ onChunk, onDone, onError }} callbacks
+ */
+export async function streamAIPrescriptionReview(prescriptionId, callbacks) {
+  const response = await fetch(`/api/v1/ai/prescription/${prescriptionId}/review`, {
+    method: 'POST',
+    headers: aiHeaders(),
+  });
+  if (!response.ok) { callbacks.onError?.(`请求失败 ${response.status}`); return; }
+  await readSSEStream(response, callbacks);
+}
+
+/**
+ * 流式 AI 对话
+ * @param {Array<{role: string, content: string}>} messages
+ * @param {{ onChunk, onDone, onError }} callbacks
+ */
+export async function streamAIChat(messages, callbacks) {
+  const response = await fetch('/api/v1/ai/chat', {
+    method: 'POST',
+    headers: aiHeaders(),
+    body: JSON.stringify({ messages }),
+  });
+  if (!response.ok) { callbacks.onError?.(`请求失败 ${response.status}`); return; }
+  await readSSEStream(response, callbacks);
+}
 
 export function fetchDashboardOverview() {
   return client.get('/api/v1/dashboard/overview');
@@ -82,6 +157,10 @@ export function approveProcurementOrder(id, body) {
 
 export function receiveProcurementOrder(id, body) {
   return client.post(`/api/v1/procurement/orders/${id}/receive`, body);
+}
+
+export function cancelProcurementOrder(id) {
+  return client.post(`/api/v1/procurement/orders/${id}/cancel`);
 }
 
 export function fetchTransfersOverview() {
@@ -201,6 +280,14 @@ export function fetchTraceCodes(traceCode) {
   return client.get('/api/v1/sales/trace-codes', { params: { traceCode } });
 }
 
+export function approveReturn(id, body) {
+  return client.post(`/api/v1/sales/returns/${id}/approve`, body);
+}
+
+export function rejectReturn(id, body) {
+  return client.post(`/api/v1/sales/returns/${id}/reject`, body);
+}
+
 // ── 出入库管理 ──────────────────────────────────────────────────────────────
 export function outboundBulk(body) {
   return client.post('/api/inventory/outbound', body);
@@ -221,6 +308,10 @@ export function dispatchTransfer(id, body) {
 
 export function signTransfer(id, body) {
   return client.post(`/api/v1/transfers/${id}/sign`, body);
+}
+
+export function cancelTransfer(id) {
+  return client.post(`/api/v1/transfers/${id}/cancel`);
 }
 
 // ── 盘点损益 ────────────────────────────────────────────────────────────────
@@ -262,6 +353,14 @@ export function updateDrug(id, body) {
   return client.patch(`/api/drugs/${id}`, body);
 }
 
+export function deleteDrug(id) {
+  return client.delete(`/api/drugs/${id}`);
+}
+
+export function acknowledgeStockAlert(drugId) {
+  return client.post(`/api/inventory/alerts/low-stock/${drugId}/acknowledge`);
+}
+
 // ── 系统管理/IAM ────────────────────────────────────────────────────────────
 export function createUser(body) {
   return client.post('/api/v1/iam/users', body);
@@ -273,6 +372,10 @@ export function assignUserRoles(id, roleIds) {
 
 export function createRole(body) {
   return client.post('/api/v1/iam/roles', body);
+}
+
+export function updateUser(id, body) {
+  return client.patch(`/api/v1/iam/users/${id}`, body);
 }
 
 export function deleteUser(id) {

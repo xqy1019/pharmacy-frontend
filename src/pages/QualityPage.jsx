@@ -255,7 +255,7 @@ export default function QualityPage() {
           { label: '执行中', value: formatNumber(stats.executing), sub: '进行中', cls: 'text-cyan-700' },
           { label: '已完成', value: formatNumber(stats.completed), sub: '闭环完成', cls: 'text-emerald-700' },
         ].map((item) => (
-          <article key={item.label} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          <article key={item.label} className="rounded-2xl border border-white bg-white p-5 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
             <p className="text-sm text-slate-500">{item.label}</p>
             <strong className={`mt-3 block text-2xl ${item.cls}`}>{item.value}</strong>
             <p className="mt-1 text-xs text-slate-400">{item.sub}</p>
@@ -264,7 +264,7 @@ export default function QualityPage() {
       </section>
 
       {/* 主工作区 */}
-      <section className="rounded-[28px] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <section className="rounded-2xl border border-white bg-white shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3">
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 outline-none">

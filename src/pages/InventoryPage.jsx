@@ -5,9 +5,14 @@ import {
   fetchInventoryOverview,
   fetchLowStockAlerts,
   fetchNearExpiryAlerts,
+  freezeBatch,
+  moveBatch,
+  unfreezeBatch,
 } from '../api/pharmacy';
+import Modal from '../components/Modal';
 import Pager from '../components/Pager';
 import SummaryCard from '../components/SummaryCard';
+import { useToast } from '../context/ToastContext';
 import { useAsyncData } from '../hooks/useAsyncData';
 import { formatDate, formatNumber } from '../utils/formatters';
 
@@ -37,12 +42,186 @@ function statusTone(value) {
   return 'neutral';
 }
 
+// ── 冻结 Modal ────────────────────────────────────────────────────────────────
+function FreezeModal({ batch, onClose, onDone }) {
+  const [qty, setQty] = useState(String(batch.availableQty || ''));
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubmit() {
+    const qtyNum = Number(qty);
+    if (!qtyNum || qtyNum <= 0) { setError('请输入有效数量'); return; }
+    if (!reason.trim()) { setError('请填写冻结原因'); return; }
+    setSubmitting(true); setError('');
+    try {
+      await freezeBatch(batch.id, { qty: qtyNum, reason: reason.trim(), freezeType: 'MANUAL' });
+      onDone();
+    } catch (e) {
+      setError(e?.response?.data?.message || '操作失败');
+    } finally { setSubmitting(false); }
+  }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-md">
+      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <h3 className="text-base font-semibold text-slate-800">冻结批次</h3>
+        <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100">✕</button>
+      </div>
+      <div className="space-y-4 px-6 py-5">
+        <div className="rounded-[14px] bg-amber-50 border border-amber-200 px-4 py-3 text-sm">
+          <p className="font-medium text-amber-800">{batch.drugName}</p>
+          <p className="mt-1 text-amber-600">批号：{batch.batchNo} · 可售：{formatNumber(batch.availableQty)}</p>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">冻结数量</label>
+          <input type="number" value={qty} onChange={(e) => setQty(e.target.value)} min="0.0001" max={batch.availableQty}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-300" />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">冻结原因 *</label>
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2}
+            placeholder="请填写冻结原因"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-300" />
+        </div>
+        {error && <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{error}</p>}
+      </div>
+      <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
+        <button type="button" onClick={handleSubmit} disabled={submitting}
+          className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50">
+          {submitting ? '提交中...' : '确认冻结'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ── 解冻 Modal ────────────────────────────────────────────────────────────────
+function UnfreezeModal({ batch, onClose, onDone }) {
+  const [qty, setQty] = useState(String(batch.frozenQty || ''));
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubmit() {
+    const qtyNum = Number(qty);
+    if (!qtyNum || qtyNum <= 0) { setError('请输入有效数量'); return; }
+    if (!reason.trim()) { setError('请填写解冻原因'); return; }
+    setSubmitting(true); setError('');
+    try {
+      await unfreezeBatch(batch.id, { qty: qtyNum, reason: reason.trim() });
+      onDone();
+    } catch (e) {
+      setError(e?.response?.data?.message || '操作失败');
+    } finally { setSubmitting(false); }
+  }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-md">
+      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <h3 className="text-base font-semibold text-slate-800">解冻批次</h3>
+        <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100">✕</button>
+      </div>
+      <div className="space-y-4 px-6 py-5">
+        <div className="rounded-[14px] bg-cyan-50 border border-cyan-200 px-4 py-3 text-sm">
+          <p className="font-medium text-cyan-800">{batch.drugName}</p>
+          <p className="mt-1 text-cyan-600">批号：{batch.batchNo} · 冻结量：{formatNumber(batch.frozenQty)}</p>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">解冻数量</label>
+          <input type="number" value={qty} onChange={(e) => setQty(e.target.value)} min="0.0001" max={batch.frozenQty}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-300" />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">解冻原因 *</label>
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2}
+            placeholder="请填写解冻原因"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-300" />
+        </div>
+        {error && <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{error}</p>}
+      </div>
+      <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
+        <button type="button" onClick={handleSubmit} disabled={submitting}
+          className="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50">
+          {submitting ? '提交中...' : '确认解冻'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ── 移库 Modal ────────────────────────────────────────────────────────────────
+function MoveModal({ batch, locationOptions, onClose, onDone }) {
+  const [targetLocation, setTargetLocation] = useState('');
+  const [qty, setQty] = useState(String(batch.availableQty || ''));
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubmit() {
+    if (!targetLocation.trim()) { setError('请选择或填写目标货位'); return; }
+    const qtyNum = Number(qty);
+    if (!qtyNum || qtyNum <= 0) { setError('请输入有效数量'); return; }
+    setSubmitting(true); setError('');
+    try {
+      await moveBatch(batch.id, { targetLocationCode: targetLocation.trim(), qty: qtyNum });
+      onDone();
+    } catch (e) {
+      setError(e?.response?.data?.message || '操作失败');
+    } finally { setSubmitting(false); }
+  }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-md">
+      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <h3 className="text-base font-semibold text-slate-800">批次移库</h3>
+        <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100">✕</button>
+      </div>
+      <div className="space-y-4 px-6 py-5">
+        <div className="rounded-[14px] bg-slate-50 border border-slate-200 px-4 py-3 text-sm">
+          <p className="font-medium text-slate-800">{batch.drugName}</p>
+          <p className="mt-1 text-slate-500">批号：{batch.batchNo} · 当前货位：{batch.locationCode || '--'}</p>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">目标货位 *</label>
+          <input list="location-list" value={targetLocation} onChange={(e) => setTargetLocation(e.target.value)}
+            placeholder="输入或选择货位编码"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-300" />
+          <datalist id="location-list">
+            {locationOptions.filter((l) => l !== batch.locationCode).map((l) => <option key={l} value={l} />)}
+          </datalist>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">移库数量</label>
+          <input type="number" value={qty} onChange={(e) => setQty(e.target.value)} min="0.0001" max={batch.availableQty}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-300" />
+          <p className="mt-1 text-xs text-slate-400">可用库存 {formatNumber(batch.availableQty)}</p>
+        </div>
+        {error && <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{error}</p>}
+      </div>
+      <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
+        <button type="button" onClick={handleSubmit} disabled={submitting}
+          className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
+          {submitting ? '提交中...' : '确认移库'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ── 主页面 ─────────────────────────────────────────────────────────────────────
 function InventoryPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [draftFilters, setDraftFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [freezeTarget, setFreezeTarget] = useState(null);
+  const [unfreezeTarget, setUnfreezeTarget] = useState(null);
+  const [moveTarget, setMoveTarget] = useState(null);
+  const toast = useToast();
 
   const { data, loading, error } = useAsyncData(
     async () => {
@@ -111,7 +290,7 @@ function InventoryPage() {
   }, [rows, page, pageSize]);
 
   if (loading || !data) {
-    return <div className="rounded-3xl border border-slate-200 bg-white p-10 text-slate-700 shadow-sm">正在加载批次数据...</div>;
+    return <div className="rounded-2xl border border-white bg-white p-10 text-slate-700 shadow-sm">正在加载批次数据...</div>;
   }
 
   if (error) {
@@ -128,7 +307,7 @@ function InventoryPage() {
       </section>
 
       {/* 主工作区 */}
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <section className="rounded-2xl border border-white bg-white p-6 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
         {/* 工具栏 */}
         <div className="mb-4 flex items-center justify-between gap-4 border-b border-slate-200 pb-3">
           <span className="text-sm font-semibold text-slate-700">
@@ -211,7 +390,8 @@ function InventoryPage() {
                   <th className="px-5 py-4 font-medium">可售 / 冻结 / 占用</th>
                   <th className="px-5 py-4 font-medium">库存状态</th>
                   <th className="px-5 py-4 font-medium">追溯码</th>
-                  <th className="px-5 py-4 font-medium pr-6">质检状态</th>
+                  <th className="px-5 py-4 font-medium">质检状态</th>
+                  <th className="px-5 py-4 font-medium pr-6">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -242,15 +422,35 @@ function InventoryPage() {
                       <td className="px-5 py-4">
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(statusTone(traceStatus))}`}>{traceStatus}</span>
                       </td>
-                      <td className="px-5 py-4 pr-6">
+                      <td className="px-5 py-4">
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(statusTone(qualityStatus))}`}>{qualityStatus}</span>
+                      </td>
+                      <td className="px-5 py-4 pr-6">
+                        <div className="flex items-center gap-1.5">
+                          {Number(item.availableQty) > 0 && (
+                            <button type="button" onClick={() => setFreezeTarget(item)}
+                              className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs text-amber-700 hover:bg-amber-100">
+                              冻结
+                            </button>
+                          )}
+                          {Number(item.frozenQty) > 0 && (
+                            <button type="button" onClick={() => setUnfreezeTarget(item)}
+                              className="rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs text-cyan-700 hover:bg-cyan-100">
+                              解冻
+                            </button>
+                          )}
+                          <button type="button" onClick={() => setMoveTarget(item)}
+                            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50">
+                            移库
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
                 {pagedRows.length === 0 && (
                   <tr className="border-t border-slate-100">
-                    <td colSpan={9} className="px-5 py-10 text-center text-slate-500">暂无批次数据</td>
+                    <td colSpan={10} className="px-5 py-10 text-center text-slate-500">暂无批次数据</td>
                   </tr>
                 )}
               </tbody>
@@ -259,6 +459,30 @@ function InventoryPage() {
           <Pager total={rows.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} pageSizeOptions={[5, 10, 20]} />
         </div>
       </section>
+
+      {/* 操作 Modals */}
+      {freezeTarget && (
+        <FreezeModal
+          batch={freezeTarget}
+          onClose={() => setFreezeTarget(null)}
+          onDone={() => { setFreezeTarget(null); setRefreshKey((v) => v + 1); toast.success('冻结成功'); }}
+        />
+      )}
+      {unfreezeTarget && (
+        <UnfreezeModal
+          batch={unfreezeTarget}
+          onClose={() => setUnfreezeTarget(null)}
+          onDone={() => { setUnfreezeTarget(null); setRefreshKey((v) => v + 1); toast.success('解冻成功'); }}
+        />
+      )}
+      {moveTarget && (
+        <MoveModal
+          batch={moveTarget}
+          locationOptions={locationOptions}
+          onClose={() => setMoveTarget(null)}
+          onDone={() => { setMoveTarget(null); setRefreshKey((v) => v + 1); toast.success('移库成功'); }}
+        />
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { allModules } from '../config/modules';
 import { ROLE_LABEL } from '../config/permissions';
 import { useAuth } from '../context/AuthContext';
 import { usePermission } from '../hooks/usePermission';
+import AIAssistant from '../components/AIAssistant';
 
 const menuIcons = ['◫', '⌂', '▣', '◪', '◩', '◨', '◎', '◌', '◍', '◳', '◰', '◱'];
 
@@ -51,16 +52,16 @@ function AppLayout() {
 
   return (
     <div
-      className="relative min-h-screen bg-[#edf3f7] lg:grid"
-      style={{ gridTemplateColumns: collapsed ? '88px minmax(0,1fr)' : '220px minmax(0,1fr)' }}
+      className="relative min-h-screen bg-[#eef2ff] lg:grid"
+      style={{ gridTemplateColumns: collapsed ? '72px minmax(0,1fr)' : '216px minmax(0,1fr)' }}
     >
-      <aside className="sticky top-0 z-20 flex h-screen flex-col border-r border-slate-200 bg-gradient-to-b from-[#0b2842] to-[#082137]">
-        <div className={`shrink-0 border-b border-white/10 ${collapsed ? 'px-4 py-5' : 'px-5 py-5'}`}>
+      <aside className="sticky top-0 z-20 flex h-screen flex-col border-r border-indigo-900/20 bg-gradient-to-b from-[#1e1b4b] via-[#1e1b4b] to-[#0f172a]">
+        <div className={`shrink-0 border-b border-white/8 ${collapsed ? 'px-3 py-4' : 'px-4 py-4'}`}>
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-emerald-500/20 text-sm font-semibold text-emerald-200">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500 text-sm font-bold text-white shadow-lg shadow-indigo-900/40">
               药
             </div>
-            {!collapsed ? <h1 className="text-[15px] font-semibold text-white">智能药房管理系统</h1> : null}
+            {!collapsed ? <h1 className="text-[14px] font-semibold tracking-wide text-white/90">智能药房管理系统</h1> : null}
           </div>
         </div>
 
@@ -91,34 +92,34 @@ function AppLayout() {
                       onClick={() => {
                         if (!collapsed) toggleExpand(item.key);
                       }}
-                      className={`flex w-full items-center gap-3 rounded-2xl transition ${
+                      className={`flex w-full items-center gap-3 rounded-xl transition ${
                         isActive
-                          ? 'bg-emerald-500/35 text-white shadow-[inset_0_0_0_1px_rgba(94,234,212,0.14)]'
-                          : 'text-slate-300 hover:bg-white/6 hover:text-white'
+                          ? 'bg-indigo-500/30 text-white shadow-[inset_0_0_0_1px_rgba(165,180,252,0.15)]'
+                          : 'text-slate-400 hover:bg-white/7 hover:text-white'
                       }`}
                       title={collapsed ? item.shortLabel : undefined}
                     >
-                      <div className={`grid shrink-0 place-items-center rounded-xl bg-white/5 ${collapsed ? 'h-12 w-12' : 'h-10 w-10'}`}>
-                        <span className="text-sm">{icon}</span>
+                      <div className={`grid shrink-0 place-items-center rounded-lg bg-white/6 ${collapsed ? 'h-11 w-11' : 'h-9 w-9'}`}>
+                        <span className="text-sm opacity-80">{icon}</span>
                       </div>
                       {!collapsed ? (
-                        <div className="flex flex-1 items-center justify-between py-3 pr-3">
+                        <div className="flex flex-1 items-center justify-between py-2.5 pr-3">
                           <span className="truncate text-sm font-medium">{item.shortLabel}</span>
-                          <span className={`text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>›</span>
+                          <span className={`text-xs opacity-60 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>›</span>
                         </div>
                       ) : null}
                     </button>
 
                     {!collapsed && isExpanded && (
-                      <div className="mt-1 ml-3 space-y-1 border-l border-white/10 pl-3">
+                      <div className="mt-1 ml-3 space-y-0.5 border-l border-indigo-400/20 pl-3">
                         {visibleChildren.map((child) => (
                           <NavLink
                             key={child.path}
                             to={child.path}
                             className={({ isActive: active }) =>
-                              `block rounded-xl px-3 py-2 text-sm transition ${
+                              `block rounded-lg px-3 py-1.5 text-sm transition ${
                                 active
-                                  ? 'bg-white/10 font-medium text-white'
+                                  ? 'bg-indigo-400/20 font-medium text-indigo-200'
                                   : 'text-slate-400 hover:bg-white/6 hover:text-white'
                               }`
                             }
@@ -137,19 +138,19 @@ function AppLayout() {
                   key={item.path}
                   to={item.path}
                   className={({ isActive: active }) =>
-                    `flex items-center gap-3 rounded-2xl transition ${
+                    `flex items-center gap-3 rounded-xl transition ${
                       active
-                        ? 'bg-emerald-500/35 text-white shadow-[inset_0_0_0_1px_rgba(94,234,212,0.14)]'
-                        : 'text-slate-300 hover:bg-white/6 hover:text-white'
+                        ? 'bg-indigo-500/30 text-white shadow-[inset_0_0_0_1px_rgba(165,180,252,0.15)]'
+                        : 'text-slate-400 hover:bg-white/7 hover:text-white'
                     }`
                   }
                   title={collapsed ? item.shortLabel : undefined}
                 >
-                  <div className={`grid shrink-0 place-items-center rounded-xl bg-white/5 ${collapsed ? 'h-12 w-12' : 'h-10 w-10'}`}>
-                    <span className="text-sm">{icon}</span>
+                  <div className={`grid shrink-0 place-items-center rounded-lg bg-white/6 ${collapsed ? 'h-11 w-11' : 'h-9 w-9'}`}>
+                    <span className="text-sm opacity-80">{icon}</span>
                   </div>
                   {!collapsed ? (
-                    <div className="min-w-0 py-3">
+                    <div className="min-w-0 py-2.5">
                       <div className="truncate text-sm font-medium">{item.shortLabel}</div>
                     </div>
                   ) : null}
@@ -159,41 +160,36 @@ function AppLayout() {
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-white/10 p-4">
+        <div className="shrink-0 border-t border-white/8 p-3">
           <button
             type="button"
             onClick={() => setCollapsed((value) => !value)}
-            className={`flex w-full items-center justify-center rounded-2xl border border-white/10 bg-white/6 text-sm text-slate-200 transition hover:bg-white/10 ${
-              collapsed ? 'h-12' : 'gap-2 px-4 py-3'
+            className={`flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white ${
+              collapsed ? 'h-10' : 'gap-2 px-4 py-2.5'
             }`}
           >
-            <span>{collapsed ? '»' : '≡'}</span>
-            {!collapsed ? <span>收起菜单</span> : null}
+            <span className="text-base">{collapsed ? '»' : '«'}</span>
+            {!collapsed ? <span>收起</span> : null}
           </button>
         </div>
       </aside>
 
-      <main
-        className="min-h-screen min-w-0"
-        style={{
-          background: 'linear-gradient(180deg, rgba(232,239,244,0.92), rgba(237,243,247,0.96)), radial-gradient(circle at 20% 0%, rgba(14,165,164,0.06), transparent 24%)'
-        }}
-      >
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 shadow-sm">
+      <main className="min-h-screen min-w-0 bg-[#eef2ff]">
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-indigo-100 bg-white/80 px-6 py-3 shadow-[0_1px_12px_rgba(99,102,241,0.06)] backdrop-blur-md">
           <div>
             {currentPage.parentLabel ? (
               <p className="text-xs text-slate-400">{currentPage.parentLabel} / {currentPage.label}</p>
             ) : (
-              <p className="text-xs text-slate-400">欢迎，{user?.fullName || user?.username || '系统管理员'}</p>
+              <p className="text-xs text-slate-400">欢迎回来，{user?.fullName || user?.username || '系统管理员'}</p>
             )}
-            <h2 className="mt-0.5 text-xl font-semibold text-slate-800">{currentPage.label}</h2>
+            <h2 className="mt-0.5 text-[18px] font-semibold text-slate-900">{currentPage.label}</h2>
           </div>
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-slate-500">角色：</span>
+            <span className="text-slate-400">角色：</span>
             <div className="flex gap-1">
               {roleLabels.length > 0 ? (
                 roleLabels.map((label) => (
-                  <span key={label} className="rounded-full bg-cyan-100 px-2.5 py-0.5 text-xs font-medium text-cyan-700">
+                  <span key={label} className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-600 ring-1 ring-indigo-100">
                     {label}
                   </span>
                 ))
@@ -204,7 +200,7 @@ function AppLayout() {
             <button
               type="button"
               onClick={logout}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-1.5 text-sm text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
             >
               退出登录
             </button>
@@ -215,6 +211,9 @@ function AppLayout() {
           <Outlet />
         </div>
       </main>
+
+      {/* 全局 AI 助手悬浮入口 */}
+      <AIAssistant />
     </div>
   );
 }
