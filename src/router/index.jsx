@@ -80,7 +80,6 @@ export function RouterProvider() {
         <Route path="/analytics" element={
           <RequirePerm perm="report.kpi.view"><AnalyticsPage /></RequirePerm>
         } />
-
         {/* 系统管理子模块 */}
         <Route path="/system" element={<SystemRedirect />} />
         <Route path="/system/users" element={

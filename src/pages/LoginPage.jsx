@@ -24,26 +24,47 @@ function LoginPage() {
     <div className="grid min-h-screen place-items-center bg-[#eef2ff] p-6" style={{backgroundImage: 'radial-gradient(ellipse at 0% 0%, rgba(99,102,241,0.1) 0%, transparent 50%), radial-gradient(ellipse at 100% 100%, rgba(6,182,212,0.07) 0%, transparent 50%)'}}>
       <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white bg-white shadow-[0_8px_32px_rgba(99,102,241,0.12),0_32px_80px_rgba(99,102,241,0.08)] lg:grid-cols-[1fr_1fr]">
         <section className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 p-10 lg:p-12">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent_50%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.3),transparent_50%)]" />
-          <div className="relative flex h-full flex-col justify-between">
+          {/* 背景装饰 */}
+          <div className="absolute -top-16 -right-16 h-64 w-64 rounded-full bg-white/5" />
+          <div className="absolute -bottom-20 -left-12 h-72 w-72 rounded-full bg-violet-500/20" />
+          <div className="absolute top-1/2 right-8 h-32 w-32 -translate-y-1/2 rounded-full bg-indigo-400/10" />
+
+          <div className="relative flex h-full flex-col justify-center gap-10">
+            {/* 图标 + 标题 */}
             <div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-2xl font-bold text-white shadow-lg">
-                药
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 shadow-[0_4px_20px_rgba(0,0,0,0.2)] backdrop-blur-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-9 w-9" fill="none">
+                    <rect x="4" y="14" width="40" height="28" rx="5" fill="white" fillOpacity="0.2" stroke="white" strokeOpacity="0.6" strokeWidth="1.5"/>
+                    <path d="M16 6h16v10H16z" fill="white" fillOpacity="0.25" stroke="white" strokeOpacity="0.6" strokeWidth="1.5"/>
+                    <circle cx="24" cy="30" r="7" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.5"/>
+                    <path d="M24 25v10M19 30h10" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <h1 className="text-[1.75rem] font-bold leading-snug text-white whitespace-nowrap tracking-tight">
+                  智能药房管理系统
+                </h1>
               </div>
-              <p className="mt-8 text-xs font-semibold uppercase tracking-widest text-indigo-200">Pharmacy Control Tower</p>
-              <h1 className="mt-4 text-4xl font-bold leading-tight text-white">
-                智能药房<br />管理系统
-              </h1>
-              <p className="mt-4 text-sm leading-relaxed text-indigo-200/80">
+              <p className="mt-4 text-sm leading-relaxed text-white/60">
                 统一管理采购、库存、处方、配送全流程
               </p>
             </div>
-            <div className="mt-12 flex gap-6 text-indigo-200/60 text-xs">
-              <span>安全加密</span>
-              <span>·</span>
-              <span>权限管控</span>
-              <span>·</span>
-              <span>全程追溯</span>
+
+            {/* 特性标签 */}
+            <div className="flex flex-col gap-3">
+              {[
+                { icon: '🔒', label: '安全加密', desc: '全链路数据加密传输' },
+                { icon: '🛡️', label: '权限管控', desc: '细粒度角色权限体系' },
+                { icon: '🔍', label: '全程追溯', desc: '药品全生命周期记录' },
+              ].map(({ icon, label, desc }) => (
+                <div key={label} className="flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm">
+                  <span className="text-lg">{icon}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{label}</p>
+                    <p className="text-xs text-white/50">{desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>

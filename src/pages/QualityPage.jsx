@@ -5,7 +5,7 @@ import {
   executeRecall,
   fetchRecalls,
 } from '../api/pharmacy';
-import Modal from '../components/Modal';
+import { Button, Modal, Space, Table } from 'antd';
 import Pager from '../components/Pager';
 import { useToast } from '../context/ToastContext';
 import { useAsyncData } from '../hooks/useAsyncData';
@@ -67,13 +67,12 @@ function CreateRecallModal({ onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-lg">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">发起质量召回</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-
-      <div className="space-y-4 px-6 py-4">
+    <Modal open onCancel={onClose} title="发起质量召回" width={640} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" danger onClick={handleSubmit} loading={submitting}>发起召回</Button>,
+      ]}>
+      <div className="space-y-4 py-2">
         <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700">
           召回后该批次将被自动冻结，请确认信息准确后再提交。
         </div>
@@ -107,7 +106,6 @@ function CreateRecallModal({ onClose, onSuccess }) {
               {Object.entries(DISPOSITION).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
-
             </select>
           </div>
         </div>
@@ -120,14 +118,6 @@ function CreateRecallModal({ onClose, onSuccess }) {
         </div>
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
-      </div>
-
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-rose-600 px-5 py-2 text-sm text-white transition hover:bg-rose-700 disabled:opacity-50">
-          {submitting ? '提交中...' : '发起召回'}
-        </button>
       </div>
     </Modal>
   );
@@ -160,12 +150,12 @@ function ProgressModal({ recall, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-4">
+    <Modal open onCancel={onClose} title={title} width={560} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>{title}</Button>,
+      ]}>
+      <div className="space-y-4 py-2">
         <div className="rounded-xl bg-slate-50 p-4 text-sm space-y-2">
           <div className="flex justify-between text-slate-500"><span>药品</span><span className="font-medium text-slate-800">{recall.drugName}</span></div>
           <div className="flex justify-between text-slate-500"><span>批号</span><span className="font-mono font-medium text-slate-800">{recall.batchNo}</span></div>
@@ -180,7 +170,6 @@ function ProgressModal({ recall, onClose, onSuccess }) {
               {Object.entries(DISPOSITION).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
-
             </select>
           </div>
         )}
@@ -192,13 +181,6 @@ function ProgressModal({ recall, onClose, onSuccess }) {
             className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-cyan-300" />
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
-      </div>
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className={`rounded-xl px-5 py-2 text-sm text-white transition disabled:opacity-50 ${isExecuting ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
-          {submitting ? '提交中...' : title}
-        </button>
       </div>
     </Modal>
   );
@@ -289,54 +271,46 @@ export default function QualityPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="py-16 text-center text-slate-400">加载中...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-5 py-3 font-medium pl-6">药品名称</th>
-                  <th className="px-5 py-3 font-medium">批号</th>
-                  <th className="px-5 py-3 font-medium">召回级别</th>
-                  <th className="px-5 py-3 font-medium">处置方式</th>
-                  <th className="px-5 py-3 font-medium">状态</th>
-                  <th className="px-5 py-3 font-medium">召回原因</th>
-                  <th className="px-5 py-3 font-medium">发起时间</th>
-                  <th className="px-5 py-3 font-medium pr-6">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedRows.map((r) => (
-                  <tr key={r.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                    <td className="px-5 py-3 pl-6 font-medium">{r.drugName}</td>
-                    <td className="px-5 py-3 font-mono text-xs text-slate-500">{r.batchNo}</td>
-                    <td className="px-5 py-3">
-                      {r.recallLevel ? <Badge status={r.recallLevel} map={LEVEL_MAP} /> : '--'}
-                    </td>
-                    <td className="px-5 py-3 text-slate-500 text-xs">{DISPOSITION[r.dispositionType] || r.dispositionType || '--'}</td>
-                    <td className="px-5 py-3"><Badge status={r.status} map={STATUS_MAP} /></td>
-                    <td className="px-5 py-3 text-slate-500 text-xs max-w-[180px] truncate" title={r.reason}>{r.reason || '--'}</td>
-                    <td className="px-5 py-3 text-xs text-slate-400">{formatDateTime(r.createdAt)}</td>
-                    <td className="px-5 py-3 pr-6">
-                      {(r.status === 'NOTIFIED' || r.status === 'EXECUTING') && (
-                        <button onClick={() => setProgressRecall(r)}
-                          className={`rounded-lg px-3 py-1 text-xs text-white transition ${r.status === 'NOTIFIED' ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
-                          {r.status === 'NOTIFIED' ? '开始执行' : '标记完成'}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {pagedRows.length === 0 && (
-                  <tr className="border-t border-slate-100">
-                    <td colSpan={8} className="px-5 py-10 text-center text-slate-500">暂无召回记录</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Table
+          loading={loading}
+          columns={[
+            { title: '药品名称', dataIndex: 'drugName', key: 'drugName', render: (v) => <span className="font-medium">{v}</span> },
+            { title: '批号', dataIndex: 'batchNo', key: 'batchNo', render: (v) => <span className="font-mono text-xs text-slate-500">{v}</span> },
+            {
+              title: '召回级别', dataIndex: 'recallLevel', key: 'recallLevel',
+              render: (v) => v ? <Badge status={v} map={LEVEL_MAP} /> : '--',
+            },
+            {
+              title: '处置方式', dataIndex: 'dispositionType', key: 'dispositionType',
+              render: (v) => <span className="text-slate-500 text-xs">{DISPOSITION[v] || v || '--'}</span>,
+            },
+            { title: '状态', dataIndex: 'status', key: 'status', render: (v) => <Badge status={v} map={STATUS_MAP} /> },
+            {
+              title: '召回原因', dataIndex: 'reason', key: 'reason',
+              ellipsis: true, width: 180,
+              render: (v) => <span className="text-slate-500 text-xs" title={v}>{v || '--'}</span>,
+            },
+            { title: '发起时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400">{formatDateTime(v)}</span> },
+            {
+              title: '操作', key: 'actions',
+              render: (_, r) => (
+                <Space>
+                  {(r.status === 'NOTIFIED' || r.status === 'EXECUTING') && (
+                    <button onClick={() => setProgressRecall(r)}
+                      className={`rounded-lg px-3 py-1 text-xs text-white transition ${r.status === 'NOTIFIED' ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+                      {r.status === 'NOTIFIED' ? '开始执行' : '标记完成'}
+                    </button>
+                  )}
+                </Space>
+              ),
+            },
+          ]}
+          dataSource={pagedRows}
+          rowKey="id"
+          size="middle"
+          pagination={false}
+          locale={{ emptyText: '暂无召回记录' }}
+        />
 
         <Pager total={filtered.length} page={page} pageSize={pageSize}
           onPageChange={setPage}

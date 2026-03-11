@@ -9,7 +9,7 @@ import {
   moveBatch,
   unfreezeBatch,
 } from '../api/pharmacy';
-import Modal from '../components/Modal';
+import { Button, Modal, Space, Table } from 'antd';
 import Pager from '../components/Pager';
 import SummaryCard from '../components/SummaryCard';
 import { useToast } from '../context/ToastContext';
@@ -63,12 +63,13 @@ function FreezeModal({ batch, onClose, onDone }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h3 className="text-base font-semibold text-slate-800">冻结批次</h3>
-        <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-5">
+    <Modal open onCancel={onClose} title="冻结批次" width={560} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}
+          style={{ backgroundColor: '#f59e0b' }}>确认冻结</Button>,
+      ]}>
+      <div className="space-y-4 py-2">
         <div className="rounded-[14px] bg-amber-50 border border-amber-200 px-4 py-3 text-sm">
           <p className="font-medium text-amber-800">{batch.drugName}</p>
           <p className="mt-1 text-amber-600">批号：{batch.batchNo} · 可售：{formatNumber(batch.availableQty)}</p>
@@ -85,13 +86,6 @@ function FreezeModal({ batch, onClose, onDone }) {
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-300" />
         </div>
         {error && <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{error}</p>}
-      </div>
-      <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button type="button" onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50">
-          {submitting ? '提交中...' : '确认冻结'}
-        </button>
       </div>
     </Modal>
   );
@@ -118,12 +112,12 @@ function UnfreezeModal({ batch, onClose, onDone }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h3 className="text-base font-semibold text-slate-800">解冻批次</h3>
-        <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-5">
+    <Modal open onCancel={onClose} title="解冻批次" width={560} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>确认解冻</Button>,
+      ]}>
+      <div className="space-y-4 py-2">
         <div className="rounded-[14px] bg-cyan-50 border border-cyan-200 px-4 py-3 text-sm">
           <p className="font-medium text-cyan-800">{batch.drugName}</p>
           <p className="mt-1 text-cyan-600">批号：{batch.batchNo} · 冻结量：{formatNumber(batch.frozenQty)}</p>
@@ -140,13 +134,6 @@ function UnfreezeModal({ batch, onClose, onDone }) {
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-300" />
         </div>
         {error && <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{error}</p>}
-      </div>
-      <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button type="button" onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50">
-          {submitting ? '提交中...' : '确认解冻'}
-        </button>
       </div>
     </Modal>
   );
@@ -173,12 +160,12 @@ function MoveModal({ batch, locationOptions, onClose, onDone }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h3 className="text-base font-semibold text-slate-800">批次移库</h3>
-        <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-5">
+    <Modal open onCancel={onClose} title="批次移库" width={560} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>确认移库</Button>,
+      ]}>
+      <div className="space-y-4 py-2">
         <div className="rounded-[14px] bg-slate-50 border border-slate-200 px-4 py-3 text-sm">
           <p className="font-medium text-slate-800">{batch.drugName}</p>
           <p className="mt-1 text-slate-500">批号：{batch.batchNo} · 当前货位：{batch.locationCode || '--'}</p>
@@ -199,13 +186,6 @@ function MoveModal({ batch, locationOptions, onClose, onDone }) {
           <p className="mt-1 text-xs text-slate-400">可用库存 {formatNumber(batch.availableQty)}</p>
         </div>
         {error && <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{error}</p>}
-      </div>
-      <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button type="button" onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
-          {submitting ? '提交中...' : '确认移库'}
-        </button>
       </div>
     </Modal>
   );
@@ -253,14 +233,18 @@ function InventoryPage() {
   const metrics = useMemo(() => {
     if (!data) return [];
     return [
-      { label: '总批次数', value: formatNumber(data.overview.totalBatchCount), detail: `货位 ${formatNumber(data.overview.locationCount)}`, tone: 'info' },
-      { label: '可售库存', value: formatNumber(data.overview.availableQty), detail: `总量 ${formatNumber(data.overview.totalQty)}`, tone: 'success' },
-      { label: '冻结/占用', value: `${formatNumber(data.overview.frozenQty)} / ${formatNumber(data.overview.reservedQty)}`, detail: '冻结 / 占用', tone: 'warning' },
+      { label: '总批次数', value: formatNumber(data.overview.totalBatchCount), detail: `货位 ${formatNumber(data.overview.locationCount)}`, tone: 'info',
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> },
+      { label: '可售库存', value: formatNumber(data.overview.availableQty), detail: `总量 ${formatNumber(data.overview.totalQty)}`, tone: 'success',
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> },
+      { label: '冻结/占用', value: `${formatNumber(data.overview.frozenQty)} / ${formatNumber(data.overview.reservedQty)}`, detail: '冻结 / 占用', tone: 'warning',
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> },
       {
         label: '异常预警',
         value: formatNumber((data.overview.lowStockCount || 0) + (data.overview.nearExpiryCount || 0) + (data.overview.abnormalBatchCount || 0)),
         detail: `低库存 ${formatNumber(data.overview.lowStockCount)}`,
         tone: 'danger',
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
       },
     ];
   }, [data]);
@@ -377,85 +361,87 @@ function InventoryPage() {
         </div>
 
         {/* 批次表格 */}
-        <div className="overflow-hidden rounded-[22px] border border-slate-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-5 py-4 font-medium pl-6">药品</th>
-                  <th className="px-5 py-4 font-medium">批号</th>
-                  <th className="px-5 py-4 font-medium">货位</th>
-                  <th className="px-5 py-4 font-medium">效期</th>
-                  <th className="px-5 py-4 font-medium">剩余天数</th>
-                  <th className="px-5 py-4 font-medium">可售 / 冻结 / 占用</th>
-                  <th className="px-5 py-4 font-medium">库存状态</th>
-                  <th className="px-5 py-4 font-medium">追溯码</th>
-                  <th className="px-5 py-4 font-medium">质检状态</th>
-                  <th className="px-5 py-4 font-medium pr-6">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedRows.map((item) => {
-                  const stockStatus   = item.stockStatusLabel   || item.stockStatus   || '--';
-                  const traceStatus   = item.traceCodeStatusLabel || item.traceCodeStatus || '--';
-                  const qualityStatus = item.qualityStatusLabel || item.qualityStatus || '--';
-                  return (
-                    <tr key={item.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                      <td className="px-5 py-4 pl-6">
-                        <div className="font-medium text-slate-800">{item.drugName}</div>
-                        <div className="mt-0.5 text-xs text-slate-400">{item.drugCode}</div>
-                      </td>
-                      <td className="px-5 py-4 font-mono text-xs text-slate-500">{item.batchNo}</td>
-                      <td className="px-5 py-4 text-slate-500">{item.locationCode || '--'}</td>
-                      <td className="px-5 py-4 text-slate-500">{formatDate(item.expiryDate)}</td>
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${(item.daysToExpiry ?? 999) <= 30 ? toneClass('danger') : toneClass('neutral')}`}>
-                          {item.daysToExpiry != null ? `${formatNumber(item.daysToExpiry)}天` : '--'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 font-semibold text-slate-700">
-                        {formatNumber(item.availableQty)} / {formatNumber(item.frozenQty)} / {formatNumber(item.reservedQty)}
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(statusTone(stockStatus))}`}>{stockStatus}</span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(statusTone(traceStatus))}`}>{traceStatus}</span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(statusTone(qualityStatus))}`}>{qualityStatus}</span>
-                      </td>
-                      <td className="px-5 py-4 pr-6">
-                        <div className="flex items-center gap-1.5">
-                          {Number(item.availableQty) > 0 && (
-                            <button type="button" onClick={() => setFreezeTarget(item)}
-                              className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs text-amber-700 hover:bg-amber-100">
-                              冻结
-                            </button>
-                          )}
-                          {Number(item.frozenQty) > 0 && (
-                            <button type="button" onClick={() => setUnfreezeTarget(item)}
-                              className="rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs text-cyan-700 hover:bg-cyan-100">
-                              解冻
-                            </button>
-                          )}
-                          <button type="button" onClick={() => setMoveTarget(item)}
-                            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50">
-                            移库
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {pagedRows.length === 0 && (
-                  <tr className="border-t border-slate-100">
-                    <td colSpan={10} className="px-5 py-10 text-center text-slate-500">暂无批次数据</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="rounded-[22px] border border-slate-200 bg-white overflow-hidden">
+          <Table
+            columns={[
+              {
+                title: '药品', dataIndex: 'drugName', key: 'drugName',
+                render: (_, item) => (
+                  <div>
+                    <div className="font-medium text-slate-800">{item.drugName}</div>
+                    <div className="mt-0.5 text-xs text-slate-400">{item.drugCode}</div>
+                  </div>
+                ),
+              },
+              { title: '批号', dataIndex: 'batchNo', key: 'batchNo', render: (v) => <span className="font-mono text-xs text-slate-500">{v}</span> },
+              { title: '货位', dataIndex: 'locationCode', key: 'locationCode', render: (v) => <span className="text-slate-500">{v || '--'}</span> },
+              { title: '效期', dataIndex: 'expiryDate', key: 'expiryDate', render: (v) => <span className="text-slate-500">{formatDate(v)}</span> },
+              {
+                title: '剩余天数', dataIndex: 'daysToExpiry', key: 'daysToExpiry',
+                render: (v) => (
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${(v ?? 999) <= 30 ? toneClass('danger') : toneClass('neutral')}`}>
+                    {v != null ? `${formatNumber(v)}天` : '--'}
+                  </span>
+                ),
+              },
+              {
+                title: '可售 / 冻结 / 占用', key: 'qty',
+                render: (_, item) => (
+                  <span className="font-semibold text-slate-700">
+                    {formatNumber(item.availableQty)} / {formatNumber(item.frozenQty)} / {formatNumber(item.reservedQty)}
+                  </span>
+                ),
+              },
+              {
+                title: '库存状态', key: 'stockStatus',
+                render: (_, item) => {
+                  const s = item.stockStatusLabel || item.stockStatus || '--';
+                  return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(statusTone(s))}`}>{s}</span>;
+                },
+              },
+              {
+                title: '追溯码', key: 'traceStatus',
+                render: (_, item) => {
+                  const s = item.traceCodeStatusLabel || item.traceCodeStatus || '--';
+                  return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(statusTone(s))}`}>{s}</span>;
+                },
+              },
+              {
+                title: '质检状态', key: 'qualityStatus',
+                render: (_, item) => {
+                  const s = item.qualityStatusLabel || item.qualityStatus || '--';
+                  return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(statusTone(s))}`}>{s}</span>;
+                },
+              },
+              {
+                title: '操作', key: 'actions',
+                render: (_, item) => (
+                  <Space size={4}>
+                    {Number(item.availableQty) > 0 && (
+                      <button type="button" onClick={() => setFreezeTarget(item)}
+                        className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs text-amber-700 hover:bg-amber-100">
+                        冻结
+                      </button>
+                    )}
+                    {Number(item.frozenQty) > 0 && (
+                      <button type="button" onClick={() => setUnfreezeTarget(item)}
+                        className="rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs text-cyan-700 hover:bg-cyan-100">
+                        解冻
+                      </button>
+                    )}
+                    <button type="button" onClick={() => setMoveTarget(item)}
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50">
+                      移库
+                    </button>
+                  </Space>
+                ),
+              },
+            ]}
+            dataSource={pagedRows}
+            rowKey="id"
+            size="middle"
+            pagination={false}
+          />
           <Pager total={rows.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} pageSizeOptions={[5, 10, 20]} />
         </div>
       </section>

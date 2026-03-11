@@ -1,4 +1,8 @@
-@tailwind base;
+/* 声明 CSS 层叠顺序：tailwind-base 优先级低于 antd，防止 Tailwind Preflight 覆盖 Ant Design 按钮样式 */
+@layer tailwind-base, antd;
+@layer tailwind-base {
+  @tailwind base;
+}
 @tailwind components;
 @tailwind utilities;
 
@@ -61,4 +65,30 @@ a {
 }
 .animate-rise {
   animation: rise 0.35s ease both;
+}
+
+/* ── Ant Design 表格边距修正 ─────────────────────────────────────────────────
+   为首列和末列增加左右内边距，避免内容贴边，全局生效于所有页面的 Table 组件 */
+.ant-table-thead > tr > th:first-child,
+.ant-table-tbody > tr > td:first-child,
+.ant-table-summary > tr > td:first-child {
+  padding-left: 20px !important;
+}
+
+.ant-table-thead > tr > th:last-child,
+.ant-table-tbody > tr > td:last-child,
+.ant-table-summary > tr > td:last-child {
+  padding-right: 20px !important;
+}
+
+/* 表头加重一点，与 body 行区分 */
+.ant-table-thead > tr > th {
+  font-weight: 600 !important;
+  color: #475569 !important;
+  background-color: #f8fafc !important;
+}
+
+/* 行悬停色统一 */
+.ant-table-tbody > tr.ant-table-row:hover > td {
+  background-color: #f8fafc !important;
 }

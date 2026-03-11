@@ -9,7 +9,7 @@ import {
   fetchRoles,
   fetchUsers,
 } from '../api/pharmacy';
-import Modal from '../components/Modal';
+import { Button, Modal, Space, Table } from 'antd';
 import Pager from '../components/Pager';
 import PermGuard from '../components/PermGuard';
 import { useToast } from '../context/ToastContext';
@@ -93,15 +93,13 @@ function RolePermDetailModal({ role, permissions, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-2xl">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-800">编辑角色权限</h2>
-          <p className="text-sm text-slate-500">{role.roleName}（{role.roleCode}）· 已选 {selected.length} 项</p>
-        </div>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="max-h-[60vh] overflow-y-auto px-6 py-4 space-y-4">
+    <Modal open onCancel={onClose} title="编辑角色权限" width={896} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSave} loading={saving}>保存权限</Button>,
+      ]}>
+      <p className="mb-4 text-sm text-slate-500">{role.roleName}（{role.roleCode}）· 已选 {selected.length} 项</p>
+      <div className="max-h-[60vh] overflow-y-auto space-y-4">
         {Object.entries(permGroups).map(([group, perms]) => (
           <div key={group}>
             <p className="mb-2 text-xs font-semibold uppercase text-slate-400 tracking-wide">
@@ -128,13 +126,6 @@ function RolePermDetailModal({ role, permissions, onClose, onSuccess }) {
           </div>
         ))}
         {!permissions?.length && <p className="py-4 text-center text-xs text-slate-400">暂无权限数据</p>}
-      </div>
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSave} disabled={saving}
-          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white transition hover:bg-cyan-700 disabled:opacity-50">
-          {saving ? '保存中...' : '保存权限'}
-        </button>
       </div>
     </Modal>
   );
@@ -168,36 +159,25 @@ function AssignRoleModal({ user: targetUser, roles, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-800">分配角色</h2>
-          <p className="text-sm text-slate-500">{targetUser.fullName || targetUser.username}</p>
-        </div>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="px-6 py-4">
-        <div className="flex flex-wrap gap-2">
-          {(roles || []).map((role) => (
-            <button key={role.id} type="button"
-              onClick={() => toggleRole(role.id)}
-              className={`rounded-xl border px-3 py-1.5 text-xs transition ${
-                selected.includes(role.id)
-                  ? 'border-cyan-400 bg-cyan-50 font-medium text-cyan-700'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-              }`}>
-              {role.roleName}
-            </button>
-          ))}
-          {(!roles || roles.length === 0) && <p className="text-xs text-slate-400">暂无角色</p>}
-        </div>
-      </div>
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSave} disabled={saving}
-          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white transition hover:bg-cyan-700 disabled:opacity-50">
-          {saving ? '保存中...' : '保存'}
-        </button>
+    <Modal open onCancel={onClose} title="分配角色" width={560} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSave} loading={saving}>保存</Button>,
+      ]}>
+      <p className="mb-3 text-sm text-slate-500">{targetUser.fullName || targetUser.username}</p>
+      <div className="flex flex-wrap gap-2">
+        {(roles || []).map((role) => (
+          <button key={role.id} type="button"
+            onClick={() => toggleRole(role.id)}
+            className={`rounded-xl border px-3 py-1.5 text-xs transition ${
+              selected.includes(role.id)
+                ? 'border-cyan-400 bg-cyan-50 font-medium text-cyan-700'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            }`}>
+            {role.roleName}
+          </button>
+        ))}
+        {(!roles || roles.length === 0) && <p className="text-xs text-slate-400">暂无角色</p>}
       </div>
     </Modal>
   );
@@ -234,12 +214,12 @@ function CreateUserModal({ roles, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-lg">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">新建用户</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-4">
+    <Modal open onCancel={onClose} title="新建用户" width={640} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>创建用户</Button>,
+      ]}>
+      <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1 block text-xs text-slate-500">用户名 *</label>
@@ -280,13 +260,6 @@ function CreateUserModal({ roles, onClose, onSuccess }) {
         </div>
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
-      </div>
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white transition hover:bg-cyan-700 disabled:opacity-50">
-          {submitting ? '创建中...' : '创建用户'}
-        </button>
       </div>
     </Modal>
   );
@@ -333,12 +306,12 @@ function CreateRoleModal({ permissions, onClose, onSuccess }) {
   }, [permissions]);
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-2xl">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">新建角色</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="flex-1 overflow-y-auto space-y-4 px-6 py-4">
+    <Modal open onCancel={onClose} title="新建角色" width={896} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>创建角色</Button>,
+      ]}>
+      <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1 block text-xs text-slate-500">角色编码 *</label>
@@ -383,13 +356,6 @@ function CreateRoleModal({ permissions, onClose, onSuccess }) {
         </div>
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
-      </div>
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white transition hover:bg-cyan-700 disabled:opacity-50">
-          {submitting ? '创建中...' : '创建角色'}
-        </button>
       </div>
     </Modal>
   );
@@ -526,139 +492,84 @@ export default function SystemPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="py-16 text-center text-slate-400">加载中...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            {activeTab === 'users' && (
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-500">
-                  <tr>
-                    <th className="px-5 py-3 font-medium pl-6">用户名</th>
-                    <th className="px-5 py-3 font-medium">真实姓名</th>
-                    <th className="px-5 py-3 font-medium">邮箱</th>
-                    <th className="px-5 py-3 font-medium">角色</th>
-                    <th className="px-5 py-3 font-medium">状态</th>
-                    <th className="px-5 py-3 font-medium">创建时间</th>
-                    <PermGuard perm="iam.user.assignRole">
-                      <th className="px-5 py-3 font-medium pr-6">操作</th>
-                    </PermGuard>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedRows.map((u) => (
-                    <tr key={u.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                      <td className="px-5 py-3 pl-6 font-medium">{u.username}</td>
-                      <td className="px-5 py-3">{u.fullName || '--'}</td>
-                      <td className="px-5 py-3 text-slate-500">{u.email || '--'}</td>
-                      <td className="px-5 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {(u.roles || u.roleNames || []).map((r) => (
-                            <span key={r.id || r} className="rounded-full bg-cyan-100 px-2 py-0.5 text-xs text-cyan-700">
-                              {r.roleName || r}
-                            </span>
-                          ))}
-                          {(!(u.roles?.length) && !(u.roleNames?.length)) && <span className="text-xs text-slate-400">未分配</span>}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${u.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                          {u.status === 'ACTIVE' ? '启用' : '禁用'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-xs text-slate-400">{formatDateTime(u.createdAt)}</td>
-                      <PermGuard perm="iam.user.assignRole">
-                        <td className="px-5 py-3 pr-6">
-                          <button onClick={() => setAssignRoleUser(u)}
-                            className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 transition">
-                            分配角色
-                          </button>
-                        </td>
-                      </PermGuard>
-                    </tr>
+        {activeTab === 'users' && (
+          <Table
+            columns={[
+              { title: '用户名', dataIndex: 'username', key: 'username', render: (v) => <span className="font-medium">{v}</span> },
+              { title: '真实姓名', dataIndex: 'fullName', key: 'fullName', render: (v) => v || '--' },
+              { title: '邮箱', dataIndex: 'email', key: 'email', render: (v) => <span className="text-slate-500">{v || '--'}</span> },
+              { title: '角色', key: 'roles', render: (_, u) => (
+                <div className="flex flex-wrap gap-1">
+                  {(u.roles || u.roleNames || []).map((r) => (
+                    <span key={r.id || r} className="rounded-full bg-cyan-100 px-2 py-0.5 text-xs text-cyan-700">{r.roleName || r}</span>
                   ))}
-                  {pagedRows.length === 0 && (
-                    <tr><td colSpan={7} className="px-5 py-10 text-center text-slate-500">暂无用户数据</td></tr>
-                  )}
-                </tbody>
-              </table>
-            )}
+                  {(!(u.roles?.length) && !(u.roleNames?.length)) && <span className="text-xs text-slate-400">未分配</span>}
+                </div>
+              )},
+              { title: '状态', dataIndex: 'status', key: 'status', render: (v) => (
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${v === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                  {v === 'ACTIVE' ? '启用' : '禁用'}
+                </span>
+              )},
+              { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400">{formatDateTime(v)}</span> },
+              ...(hasPerm('iam.user.assignRole') ? [{ title: '操作', key: 'actions', render: (_, u) => (
+                <button onClick={() => setAssignRoleUser(u)}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 transition">
+                  分配角色
+                </button>
+              )}] : []),
+            ]}
+            dataSource={pagedRows}
+            rowKey="id"
+            size="middle"
+            pagination={false}
+            loading={loading}
+          />
+        )}
 
-            {activeTab === 'roles' && (
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-500">
-                  <tr>
-                    <th className="px-5 py-3 font-medium pl-6">角色编码</th>
-                    <th className="px-5 py-3 font-medium">角色名称</th>
-                    <th className="px-5 py-3 font-medium">权限数</th>
-                    <th className="px-5 py-3 font-medium">状态</th>
-                    <th className="px-5 py-3 font-medium">创建时间</th>
-                    <PermGuard perm="iam.role.assignPerm">
-                      <th className="px-5 py-3 font-medium pr-6">操作</th>
-                    </PermGuard>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedRows.map((r) => (
-                    <tr key={r.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                      <td className="px-5 py-3 pl-6 font-mono text-xs text-slate-500">{r.roleCode}</td>
-                      <td className="px-5 py-3 font-medium">{r.roleName}</td>
-                      <td className="px-5 py-3 text-slate-500">{r.permissionCount ?? (r.permissions || []).length}</td>
-                      <td className="px-5 py-3">
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${r.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                          {r.status === 'ACTIVE' ? '启用' : '禁用'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-xs text-slate-400">{formatDateTime(r.createdAt)}</td>
-                      <PermGuard perm="iam.role.assignPerm">
-                        <td className="px-5 py-3 pr-6">
-                          <button onClick={() => setEditRolePerms(r)}
-                            className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 transition">
-                            编辑权限
-                          </button>
-                        </td>
-                      </PermGuard>
-                    </tr>
-                  ))}
-                  {pagedRows.length === 0 && (
-                    <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-500">暂无角色数据</td></tr>
-                  )}
-                </tbody>
-              </table>
-            )}
+        {activeTab === 'roles' && (
+          <Table
+            columns={[
+              { title: '角色编码', dataIndex: 'roleCode', key: 'roleCode', render: (v) => <span className="font-mono text-xs text-slate-500">{v}</span> },
+              { title: '角色名称', dataIndex: 'roleName', key: 'roleName', render: (v) => <span className="font-medium">{v}</span> },
+              { title: '权限数', key: 'permCount', render: (_, r) => <span className="text-slate-500">{r.permissionCount ?? (r.permissions || []).length}</span> },
+              { title: '状态', dataIndex: 'status', key: 'status', render: (v) => (
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${v === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                  {v === 'ACTIVE' ? '启用' : '禁用'}
+                </span>
+              )},
+              { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400">{formatDateTime(v)}</span> },
+              ...(hasPerm('iam.role.assignPerm') ? [{ title: '操作', key: 'actions', render: (_, r) => (
+                <button onClick={() => setEditRolePerms(r)}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 transition">
+                  编辑权限
+                </button>
+              )}] : []),
+            ]}
+            dataSource={pagedRows}
+            rowKey="id"
+            size="middle"
+            pagination={false}
+            loading={loading}
+          />
+        )}
 
-            {activeTab === 'audit' && (
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-500">
-                  <tr>
-                    <th className="px-5 py-3 font-medium pl-6">操作人</th>
-                    <th className="px-5 py-3 font-medium">模块</th>
-                    <th className="px-5 py-3 font-medium">操作</th>
-                    <th className="px-5 py-3 font-medium">目标</th>
-                    <th className="px-5 py-3 font-medium">IP 地址</th>
-                    <th className="px-5 py-3 font-medium pr-6">时间</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedRows.map((l) => (
-                    <tr key={l.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                      <td className="px-5 py-3 pl-6 font-medium">{l.operatorName || l.username || '--'}</td>
-                      <td className="px-5 py-3 text-slate-500">{l.module || '--'}</td>
-                      <td className="px-5 py-3">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{l.action || '--'}</span>
-                      </td>
-                      <td className="px-5 py-3 text-xs text-slate-500">{l.targetId || l.resourceId || '--'}</td>
-                      <td className="px-5 py-3 font-mono text-xs text-slate-400">{l.ipAddress || l.ip || '--'}</td>
-                      <td className="px-5 py-3 pr-6 text-xs text-slate-400">{formatDateTime(l.createdAt)}</td>
-                    </tr>
-                  ))}
-                  {pagedRows.length === 0 && (
-                    <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-500">暂无审计日志</td></tr>
-                  )}
-                </tbody>
-              </table>
-            )}
-          </div>
+        {activeTab === 'audit' && (
+          <Table
+            columns={[
+              { title: '操作人', key: 'operator', render: (_, l) => <span className="font-medium">{l.operatorName || l.username || '--'}</span> },
+              { title: '模块', dataIndex: 'module', key: 'module', render: (v) => <span className="text-slate-500">{v || '--'}</span> },
+              { title: '操作', dataIndex: 'action', key: 'action', render: (v) => <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{v || '--'}</span> },
+              { title: '目标', key: 'target', render: (_, l) => <span className="text-xs text-slate-500">{l.targetId || l.resourceId || '--'}</span> },
+              { title: 'IP 地址', key: 'ip', render: (_, l) => <span className="font-mono text-xs text-slate-400">{l.ipAddress || l.ip || '--'}</span> },
+              { title: '时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400">{formatDateTime(v)}</span> },
+            ]}
+            dataSource={pagedRows}
+            rowKey="id"
+            size="middle"
+            pagination={false}
+            loading={loading}
+          />
         )}
 
         <Pager total={currentList.length} page={page} pageSize={pageSize}

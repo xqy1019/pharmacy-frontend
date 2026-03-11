@@ -64,14 +64,17 @@ export async function streamAIPrescriptionReview(prescriptionId, callbacks) {
  * 流式 AI 对话
  * @param {Array<{role: string, content: string}>} messages
  * @param {{ onChunk, onDone, onError }} callbacks
+ * @param {{ page?: string }} context 当前页面上下文
+ * @param {AbortSignal} [signal] 可选的中止信号
  */
-export async function streamAIChat(messages, callbacks) {
+export async function streamAIChat(messages, callbacks, context = {}, signal) {
   const response = await fetch('/api/v1/ai/chat', {
     method: 'POST',
     headers: aiHeaders(),
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, context }),
+    signal,
   });
-  if (!response.ok) { callbacks.onError?.(`请求失败 ${response.status}`); return; }
+  if (!response.ok) { callbacks.onError?.(`${response.status}`); return; }
   await readSSEStream(response, callbacks);
 }
 
@@ -161,6 +164,10 @@ export function receiveProcurementOrder(id, body) {
 
 export function cancelProcurementOrder(id) {
   return client.post(`/api/v1/procurement/orders/${id}/cancel`);
+}
+
+export function updateProcurementOrderItems(id, items) {
+  return client.post(`/api/v1/procurement/orders/${id}/items`, { items });
 }
 
 export function fetchTransfersOverview() {

@@ -1,6 +1,7 @@
 // 统一摘要卡片组件
 // accent: Tailwind 渐变类字符串，如 'from-cyan-500 to-teal-500'
-// tone: 快捷别名 → info / success / warning / danger
+// tone:   快捷别名 → info / success / warning / danger / primary / purple
+// icon:   ReactNode，传入 SVG 元素显示在色块中；不传则显示默认小圆点
 const TONE_MAP = {
   info:    { gradient: 'from-cyan-500 to-teal-400',    ring: 'ring-cyan-100',    bg: 'bg-cyan-50' },
   success: { gradient: 'from-emerald-500 to-green-400', ring: 'ring-emerald-100', bg: 'bg-emerald-50' },
@@ -10,7 +11,7 @@ const TONE_MAP = {
   purple:  { gradient: 'from-purple-500 to-violet-400', ring: 'ring-purple-100',  bg: 'bg-purple-50' },
 };
 
-function SummaryCard({ label, value, detail, accent, tone }) {
+function SummaryCard({ label, value, detail, accent, tone, icon }) {
   const config = TONE_MAP[tone] || TONE_MAP.info;
   const gradient = accent || config.gradient;
 
@@ -22,8 +23,8 @@ function SummaryCard({ label, value, detail, accent, tone }) {
           <strong className="mt-3 block text-[22px] font-bold text-slate-900">{value}</strong>
           {detail && <p className="mt-1.5 text-sm text-slate-500">{detail}</p>}
         </div>
-        <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${gradient} shadow-lg`}>
-          <span className="h-2 w-2 rounded-full bg-white/70" />
+        <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${gradient} shadow-lg text-white`}>
+          {icon ?? <span className="h-2 w-2 rounded-full bg-white/70" />}
         </div>
       </div>
       {/* 底部装饰条 */}

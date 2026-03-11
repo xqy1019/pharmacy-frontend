@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Modal, Button, Table, Space } from 'antd';
 import {
   fetchInventoryBatches,
   fetchInventoryOverview,
@@ -6,7 +7,6 @@ import {
   inboundBulk,
   outboundBulk,
 } from '../api/pharmacy';
-import Modal from '../components/Modal';
 import Pager from '../components/Pager';
 import SummaryCard from '../components/SummaryCard';
 import { DEFAULT_WAREHOUSE_ID } from '../config/warehouse';
@@ -76,94 +76,66 @@ function InboundModal({ onClose, onSuccess }) {
     }
   }
 
+  const inboundColumns = [
+    { title: '药品名称 *', dataIndex: 'drugName', key: 'drugName', width: 130, render: (_, __, idx) => (
+      <input value={items[idx].drugName} onChange={(e) => updateItem(idx, 'drugName', e.target.value)}
+        placeholder="药品名称"
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-300" />
+    )},
+    { title: '批号 *', dataIndex: 'batchNo', key: 'batchNo', width: 112, render: (_, __, idx) => (
+      <input value={items[idx].batchNo} onChange={(e) => updateItem(idx, 'batchNo', e.target.value)}
+        placeholder="批号"
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-300" />
+    )},
+    { title: '效期', dataIndex: 'expiryDate', key: 'expiryDate', width: 128, render: (_, __, idx) => (
+      <input type="date" value={items[idx].expiryDate} onChange={(e) => updateItem(idx, 'expiryDate', e.target.value)}
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-300" />
+    )},
+    { title: '数量 *', dataIndex: 'quantity', key: 'quantity', width: 80, render: (_, __, idx) => (
+      <input type="number" min="1" value={items[idx].quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-300" />
+    )},
+    { title: '单价(元)', dataIndex: 'unitCost', key: 'unitCost', width: 96, render: (_, __, idx) => (
+      <input type="number" min="0" step="0.01" value={items[idx].unitCost} onChange={(e) => updateItem(idx, 'unitCost', e.target.value)}
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-300" />
+    )},
+    { title: '货位', dataIndex: 'locationCode', key: 'locationCode', width: 112, render: (_, __, idx) => (
+      <input value={items[idx].locationCode} onChange={(e) => updateItem(idx, 'locationCode', e.target.value)}
+        placeholder="如 A01-01"
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-300" />
+    )},
+    { title: '供应商', dataIndex: 'supplierName', key: 'supplierName', width: 112, render: (_, __, idx) => (
+      <input value={items[idx].supplierName} onChange={(e) => updateItem(idx, 'supplierName', e.target.value)}
+        placeholder="供应商"
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-300" />
+    )},
+    { title: '', key: 'actions', width: 32, render: (_, __, idx) => (
+      items.length > 1 ? (
+        <button onClick={() => setItems((p) => p.filter((_, i) => i !== idx))}
+          className="text-rose-400 hover:text-rose-600">✕</button>
+      ) : null
+    )},
+  ];
+
   return (
-    <Modal onClose={onClose} maxWidth="max-w-4xl">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">批量入库</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 py-4">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-600">入库明细（共 {items.length} 行）</span>
-          <button onClick={() => setItems((p) => [...p, EMPTY_IN_ITEM()])}
-            className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100">
-            + 添加行
-          </button>
-        </div>
-
-        <div className="overflow-hidden rounded-xl border border-slate-200">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-xs">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium min-w-[130px]">药品名称 *</th>
-                  <th className="px-3 py-2 text-left font-medium w-28">批号 *</th>
-                  <th className="px-3 py-2 text-left font-medium w-32">效期</th>
-                  <th className="px-3 py-2 text-left font-medium w-20">数量 *</th>
-                  <th className="px-3 py-2 text-left font-medium w-24">单价(元)</th>
-                  <th className="px-3 py-2 text-left font-medium w-28">货位</th>
-                  <th className="px-3 py-2 text-left font-medium w-28">供应商</th>
-                  <th className="w-8"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, idx) => (
-                  <tr key={idx} className="border-t border-slate-100">
-                    <td className="px-3 py-2">
-                      <input value={item.drugName} onChange={(e) => updateItem(idx, 'drugName', e.target.value)}
-                        placeholder="药品名称"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input value={item.batchNo} onChange={(e) => updateItem(idx, 'batchNo', e.target.value)}
-                        placeholder="批号"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input type="date" value={item.expiryDate} onChange={(e) => updateItem(idx, 'expiryDate', e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input type="number" min="0" step="0.01" value={item.unitCost} onChange={(e) => updateItem(idx, 'unitCost', e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input value={item.locationCode} onChange={(e) => updateItem(idx, 'locationCode', e.target.value)}
-                        placeholder="如 A01-01"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input value={item.supplierName} onChange={(e) => updateItem(idx, 'supplierName', e.target.value)}
-                        placeholder="供应商"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-300" />
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      {items.length > 1 && (
-                        <button onClick={() => setItems((p) => p.filter((_, i) => i !== idx))}
-                          className="text-rose-400 hover:text-rose-600">✕</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
-      </div>
-
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-emerald-600 px-5 py-2 text-sm text-white transition hover:bg-emerald-700 disabled:opacity-50">
+    <Modal open onCancel={onClose} title="批量入库" width={1280} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>
           {submitting ? '提交中...' : '确认入库'}
+        </Button>,
+      ]}>
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-xs font-medium text-slate-600">入库明细（共 {items.length} 行）</span>
+        <button onClick={() => setItems((p) => [...p, EMPTY_IN_ITEM()])}
+          className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100">
+          + 添加行
         </button>
       </div>
+
+      <Table columns={inboundColumns} dataSource={items} rowKey={(_, idx) => idx}
+        size="small" pagination={false} />
+      {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
     </Modal>
   );
 }
@@ -205,13 +177,14 @@ function OutboundModal({ batches, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">出库操作</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-
-      <div className="space-y-4 px-6 py-4">
+    <Modal open onCancel={onClose} title="出库操作" width={560} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>
+          {submitting ? '提交中...' : '确认出库'}
+        </Button>,
+      ]}>
+      <div className="space-y-4">
         <div>
           <label className="mb-1 block text-xs text-slate-500">选择批次 *</label>
           <select value={batchId} onChange={(e) => setBatchId(e.target.value)}
@@ -265,14 +238,6 @@ function OutboundModal({ batches, onClose, onSuccess }) {
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
       </div>
-
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-amber-500 px-5 py-2 text-sm text-white transition hover:bg-amber-600 disabled:opacity-50">
-          {submitting ? '提交中...' : '确认出库'}
-        </button>
-      </div>
     </Modal>
   );
 }
@@ -316,9 +281,12 @@ export default function WarehousePage() {
       {overview && (
         <section className="grid gap-4 md:grid-cols-3">
           {[
-            { label: '在库批次',   value: formatNumber(overview.batchCount ?? overview.totalBatches ?? overview.totalBatchCount), detail: '当前有效批次数', accent: toneAccents[0] },
-            { label: '库存总量',   value: formatNumber(overview.totalQuantity ?? overview.totalQty ?? overview.totalStock), detail: '所有药品总库存', accent: toneAccents[1] },
-            { label: '今日出入库', value: formatNumber(overview.todayTxCount ?? '--'), detail: '今日操作笔数', accent: toneAccents[2] },
+            { label: '在库批次', value: formatNumber(overview.batchCount ?? overview.totalBatches ?? overview.totalBatchCount), detail: '当前有效批次数', accent: toneAccents[0],
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> },
+            { label: '库存总量', value: formatNumber(overview.totalQuantity ?? overview.totalQty ?? overview.totalStock), detail: '所有药品总库存', accent: toneAccents[1],
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8h14"/><path d="M5 12h14"/><path d="M5 16h14"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg> },
+            { label: '今日出入库', value: formatNumber(overview.todayTxCount ?? '--'), detail: '今日操作笔数', accent: toneAccents[2],
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/><polyline points="19 6 12 13 5 6"/></svg> },
           ].map((item) => (
             <SummaryCard key={item.label} {...item} />
           ))}
@@ -361,47 +329,26 @@ export default function WarehousePage() {
         </div>
 
         {/* 流水表格 */}
-        {txLoading ? (
-          <div className="py-16 text-center text-slate-400">加载中...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-5 py-3 font-medium pl-6">药品名称</th>
-                  <th className="px-5 py-3 font-medium">批号</th>
-                  <th className="px-5 py-3 font-medium">类型</th>
-                  <th className="px-5 py-3 font-medium">数量变动</th>
-                  <th className="px-5 py-3 font-medium">操作人</th>
-                  <th className="px-5 py-3 font-medium">备注</th>
-                  <th className="px-5 py-3 font-medium pr-6">时间</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedRows.map((tx) => (
-                  <tr key={tx.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                    <td className="px-5 py-3 pl-6 font-medium">{tx.drugName}</td>
-                    <td className="px-5 py-3 font-mono text-xs text-slate-500">{tx.batchNo || '--'}</td>
-                    <td className="px-5 py-3"><TxBadge type={tx.txType} /></td>
-                    <td className="px-5 py-3">
-                      <span className={`font-semibold ${(tx.quantityChange ?? tx.qty ?? 0) > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                        {(tx.quantityChange ?? tx.qty ?? 0) > 0 ? '+' : ''}{tx.quantityChange ?? tx.qty ?? 0}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-slate-500">{tx.operatorName || '--'}</td>
-                    <td className="px-5 py-3 text-xs text-slate-400">{tx.remark || '--'}</td>
-                    <td className="px-5 py-3 pr-6 text-xs text-slate-400">{formatDateTime(tx.createdAt || tx.occurredAt)}</td>
-                  </tr>
-                ))}
-                {pagedRows.length === 0 && (
-                  <tr className="border-t border-slate-100">
-                    <td colSpan={7} className="px-5 py-10 text-center text-slate-500">暂无出入库记录</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Table
+          columns={[
+            { title: '药品名称', dataIndex: 'drugName', key: 'drugName', render: (v) => <span className="font-medium">{v}</span> },
+            { title: '批号', dataIndex: 'batchNo', key: 'batchNo', render: (v) => <span className="font-mono text-xs text-slate-500">{v || '--'}</span> },
+            { title: '类型', dataIndex: 'txType', key: 'txType', render: (v) => <TxBadge type={v} /> },
+            { title: '数量变动', key: 'quantityChange', render: (_, tx) => {
+              const val = tx.quantityChange ?? tx.qty ?? 0;
+              return <span className={`font-semibold ${val > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>{val > 0 ? '+' : ''}{val}</span>;
+            }},
+            { title: '操作人', dataIndex: 'operatorName', key: 'operatorName', render: (v) => <span className="text-slate-500">{v || '--'}</span> },
+            { title: '备注', dataIndex: 'remark', key: 'remark', render: (v) => <span className="text-xs text-slate-400">{v || '--'}</span> },
+            { title: '时间', key: 'time', render: (_, tx) => <span className="text-xs text-slate-400">{formatDateTime(tx.createdAt || tx.occurredAt)}</span> },
+          ]}
+          dataSource={pagedRows}
+          rowKey="id"
+          size="middle"
+          pagination={false}
+          loading={txLoading}
+          locale={{ emptyText: '暂无出入库记录' }}
+        />
 
         <Pager
           total={filteredTx.length}

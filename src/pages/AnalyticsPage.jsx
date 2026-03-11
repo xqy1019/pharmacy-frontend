@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Table } from 'antd';
 import ChartCard from '../components/ChartCard';
 import Pager from '../components/Pager';
 import SummaryCard from '../components/SummaryCard';
@@ -66,51 +67,37 @@ function ABCTable({ data }) {
         ))}
         <span className="ml-auto text-xs text-slate-400">共 {filtered.length} 品种</span>
       </div>
-      <div className="overflow-hidden rounded-xl border border-slate-200">
-        <table className="min-w-full text-xs">
-          <thead className="bg-slate-50 text-slate-500">
-            <tr>
-              <th className="px-4 py-2.5 text-left font-medium">药品</th>
-              <th className="px-4 py-2.5 text-left font-medium">分类</th>
-              <th className="px-4 py-2.5 text-left font-medium">库存量</th>
-              <th className="px-4 py-2.5 text-left font-medium">30天销量</th>
-              <th className="px-4 py-2.5 text-left font-medium">周转天数</th>
-              <th className="px-4 py-2.5 text-left font-medium">累计销量占比</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paged.map((drug, i) => {
-              const s = ABC_STYLE[drug.abcClass];
-              return (
-                <tr key={i} className="border-t border-slate-100 hover:bg-slate-50/60">
-                  <td className="px-4 py-2.5 font-medium text-slate-700">{drug.drugName}</td>
-                  <td className="px-4 py-2.5">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${s.bg} ${s.text}`}>{drug.abcClass}</span>
-                  </td>
-                  <td className="px-4 py-2.5 text-slate-600">{formatNumber(drug.stockQty)}</td>
-                  <td className="px-4 py-2.5 text-slate-600">{formatNumber(drug.soldQty30d)}</td>
-                  <td className="px-4 py-2.5">
-                    <span className={drug.turnoverDays >= 90 ? 'text-rose-600 font-medium' : drug.turnoverDays >= 60 ? 'text-amber-600' : 'text-slate-600'}>
-                      {drug.turnoverDays >= 999 ? '无销量' : `${formatNumber(drug.turnoverDays)} 天`}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, drug.cumulativePct)}%`, backgroundColor: s.bar }} />
-                      </div>
-                      <span className="text-slate-500">{drug.cumulativePct.toFixed(1)}%</span>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {paged.length === 0 && (
-              <tr><td colSpan={6} className="py-8 text-center text-slate-400">暂无数据</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { title: '药品', dataIndex: 'drugName', key: 'drugName', render: (v) => <span className="font-medium text-slate-700">{v}</span> },
+          { title: '分类', dataIndex: 'abcClass', key: 'abcClass', render: (v) => {
+            const s = ABC_STYLE[v];
+            return <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${s.bg} ${s.text}`}>{v}</span>;
+          }},
+          { title: '库存量', dataIndex: 'stockQty', key: 'stockQty', render: (v) => <span className="text-slate-600">{formatNumber(v)}</span> },
+          { title: '30天销量', dataIndex: 'soldQty30d', key: 'soldQty30d', render: (v) => <span className="text-slate-600">{formatNumber(v)}</span> },
+          { title: '周转天数', dataIndex: 'turnoverDays', key: 'turnoverDays', render: (v) => (
+            <span className={v >= 90 ? 'text-rose-600 font-medium' : v >= 60 ? 'text-amber-600' : 'text-slate-600'}>
+              {v >= 999 ? '无销量' : `${formatNumber(v)} 天`}
+            </span>
+          )},
+          { title: '累计销量占比', dataIndex: 'cumulativePct', key: 'cumulativePct', render: (v, drug) => {
+            const s = ABC_STYLE[drug.abcClass];
+            return (
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, v)}%`, backgroundColor: s.bar }} />
+                </div>
+                <span className="text-slate-500">{v.toFixed(1)}%</span>
+              </div>
+            );
+          }},
+        ]}
+        dataSource={paged}
+        rowKey={(_, i) => i}
+        size="small"
+        pagination={false}
+      />
       {totalPages > 1 && (
         <Pager total={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
       )}
@@ -315,33 +302,19 @@ function AnalyticsPage() {
         {/* 效期损耗风险 */}
         <div className="rounded-2xl border border-white bg-white p-6 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
           <SectionTitle badge="30天内效期">效期损耗风险 Top 10</SectionTitle>
-          <div className="overflow-hidden rounded-xl border border-slate-200">
-            <table className="min-w-full text-xs">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-4 py-2.5 text-left font-medium">药品</th>
-                  <th className="px-4 py-2.5 text-left font-medium">批号</th>
-                  <th className="px-4 py-2.5 text-left font-medium">效期</th>
-                  <th className="px-4 py-2.5 text-right font-medium">预计损失</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data?.expiryLoss || []).slice(0, 8).map((item, i) => (
-                  <tr key={i} className="border-t border-slate-100 hover:bg-slate-50/60">
-                    <td className="px-4 py-2 font-medium text-slate-700">{item.drugName}</td>
-                    <td className="px-4 py-2 font-mono text-slate-500">{item.batchNo}</td>
-                    <td className="px-4 py-2 text-rose-600">{formatDate(item.expiryDate)}</td>
-                    <td className="px-4 py-2 text-right font-semibold text-amber-700">
-                      ¥{formatNumber(item.estimatedLoss)}
-                    </td>
-                  </tr>
-                ))}
-                {(data?.expiryLoss || []).length === 0 && (
-                  <tr><td colSpan={4} className="py-6 text-center text-emerald-600 font-medium">暂无近效期损耗风险</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            columns={[
+              { title: '药品', dataIndex: 'drugName', key: 'drugName', render: (v) => <span className="font-medium text-slate-700">{v}</span> },
+              { title: '批号', dataIndex: 'batchNo', key: 'batchNo', render: (v) => <span className="font-mono text-slate-500">{v}</span> },
+              { title: '效期', dataIndex: 'expiryDate', key: 'expiryDate', render: (v) => <span className="text-rose-600">{formatDate(v)}</span> },
+              { title: '预计损失', dataIndex: 'estimatedLoss', key: 'estimatedLoss', align: 'right', render: (v) => <span className="font-semibold text-amber-700">¥{formatNumber(v)}</span> },
+            ]}
+            dataSource={(data?.expiryLoss || []).slice(0, 8)}
+            rowKey={(_, i) => i}
+            size="small"
+            pagination={false}
+            locale={{ emptyText: <span className="text-emerald-600 font-medium">暂无近效期损耗风险</span> }}
+          />
 
           {slowMovers > 0 && (
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">

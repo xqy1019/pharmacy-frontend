@@ -8,9 +8,10 @@ export const PERM_GROUPS = {
   stocktake:    '盘点管理',
   quality:      '质量召回',
   report:       '统计报表',
-  integration:  '系统集成',
-  sales:        '销售管理',
-  iam:          '系统权限',
+  integration:    '系统集成',
+  sales:          '销售管理',
+  iam:            '系统权限',
+  replenishment:  '智能补货',
 };
 
 // 权限码 → 中文名
@@ -49,6 +50,8 @@ export const PERM_LABEL = {
   'sales.order.view':            '查看销售订单',
   'sales.order.create':          '创建销售订单',
   'sales.trace.view':            '追溯码查询',
+  'replenishment.view':          '查看补货预测',
+  'replenishment.generate':      '生成采购计划',
 };
 
 // 角色码 → 中文名

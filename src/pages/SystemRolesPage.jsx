@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
+import { Button, Modal, Space, Table } from 'antd';
 import { assignRolePerms, createRole, deleteRole, fetchPermissions, fetchRoles } from '../api/pharmacy';
-import Modal from '../components/Modal';
 import Pager from '../components/Pager';
 import PermGuard from '../components/PermGuard';
 import { PERM_GROUPS, PERM_LABEL, ROLE_LABEL } from '../config/permissions';
@@ -48,20 +48,18 @@ function EditPermModal({ role, permissions, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-2xl">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <div>
-          <h2 className="text-base font-semibold text-slate-800">编辑权限配置</h2>
-          <p className="text-sm text-slate-400">
-            {ROLE_LABEL[role.roleCode] || role.roleName}
-            <span className="ml-2 font-mono text-xs">{role.roleCode}</span>
-            <span className="ml-2">· 已选 {selected.length} 项</span>
-          </p>
-        </div>
-        <button onClick={onClose} className="text-xl leading-none text-slate-300 hover:text-slate-500">✕</button>
-      </div>
-
-      <div className="max-h-[60vh] overflow-y-auto px-6 py-4 space-y-3">
+    <Modal open onCancel={onClose} title="编辑权限配置" width={896} destroyOnClose
+      footer={[
+        <Button key="clear" onClick={() => setSelected([])} style={{ float: 'left' }}>清空全部</Button>,
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSave} loading={saving}>保存权限</Button>,
+      ]}>
+      <p className="mb-4 text-sm text-slate-400">
+        {ROLE_LABEL[role.roleCode] || role.roleName}
+        <span className="ml-2 font-mono text-xs">{role.roleCode}</span>
+        <span className="ml-2">· 已选 {selected.length} 项</span>
+      </p>
+      <div className="max-h-[60vh] overflow-y-auto space-y-3">
         {Object.entries(grouped).map(([group, perms]) => {
           const ids = perms.map((p) => p.id);
           const allOn = ids.every((id) => selected.includes(id));
@@ -98,19 +96,6 @@ function EditPermModal({ role, permissions, onClose, onSuccess }) {
           );
         })}
         {!permissions?.length && <p className="py-8 text-center text-sm text-slate-400">暂无权限数据</p>}
-      </div>
-
-      <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-        <button type="button" onClick={() => setSelected([])}
-          className="text-xs text-slate-400 hover:text-slate-600 transition">清空全部</button>
-        <div className="flex gap-2">
-          <button onClick={onClose}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition">取消</button>
-          <button onClick={handleSave} disabled={saving}
-            className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white hover:bg-cyan-700 disabled:opacity-50 transition">
-            {saving ? '保存中...' : '保存权限'}
-          </button>
-        </div>
       </div>
     </Modal>
   );
@@ -154,12 +139,12 @@ function CreateRoleModal({ permissions, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-2xl">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-base font-semibold text-slate-800">新增角色</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-300 hover:text-slate-500">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-5">
+    <Modal open onCancel={onClose} title="新增角色" width={896} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>确认创建</Button>,
+      ]}>
+      <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">角色名称 *</label>
@@ -198,14 +183,6 @@ function CreateRoleModal({ permissions, onClose, onSuccess }) {
           </div>
         </div>
         {error && <p className="text-sm text-rose-500">{error}</p>}
-      </div>
-      <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
-        <button onClick={onClose}
-          className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white hover:bg-cyan-700 disabled:opacity-50 transition">
-          {submitting ? '创建中...' : '确认创建'}
-        </button>
       </div>
     </Modal>
   );
@@ -345,89 +322,52 @@ export default function SystemRolesPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="py-20 text-center text-sm text-slate-400">加载中...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs text-slate-500">
-                <tr>
-                  <th className="px-6 py-3 font-medium">角色名称</th>
-                  <th className="px-4 py-3 font-medium">角色编码</th>
-                  <th className="px-4 py-3 font-medium">已分配权限</th>
-                  <th className="px-4 py-3 font-medium">状态</th>
-                  <th className="px-4 py-3 font-medium">创建时间</th>
-                  <th className="px-4 py-3 font-medium pr-6">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paged.map((role) => (
-                  <tr key={role.id} className="border-t border-slate-100 transition hover:bg-slate-50/70">
-                    <td className="px-6 py-3">
-                      <span className="font-medium text-slate-800">
-                        {ROLE_LABEL[role.roleCode] || role.roleName}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-mono text-xs text-slate-600">
-                        {role.roleCode}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <PermTags perms={role.permissions || []} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        role.status === 'ACTIVE'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {role.status === 'ACTIVE' ? '启用' : '停用'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
-                      {formatDateTime(role.createdAt)}
-                    </td>
-                    <td className="px-4 py-3 pr-6">
-                      <PermGuard perm="iam.role.assignPerm">
-                        <div className="flex items-center gap-1.5">
-                          <button onClick={() => setEditRole(role)} title="编辑权限"
-                            className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-600">
-                            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                              <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round"/>
-                            </svg>
-                          </button>
-                          {BUILT_IN_ROLES.has(role.roleCode) ? (
-                            <span title="系统内置角色不可删除"
-                              className="grid h-7 w-7 place-items-center rounded-lg border border-slate-100 text-slate-200 cursor-not-allowed">
-                              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                                <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
-                              </svg>
-                            </span>
-                          ) : (
-                            <button onClick={() => setDeleteTarget(role)} title="删除角色"
-                              className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500">
-                              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                                <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </PermGuard>
-                    </td>
-                  </tr>
-                ))}
-                {paged.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400">
-                      {loading ? '加载中...' : (applied ? `未找到匹配"${applied}"的角色` : '暂无角色数据')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Table
+          columns={[
+            { title: '角色名称', key: 'roleName', render: (_, role) => <span className="font-medium text-slate-800">{ROLE_LABEL[role.roleCode] || role.roleName}</span> },
+            { title: '角色编码', dataIndex: 'roleCode', key: 'roleCode', render: (v) => <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-mono text-xs text-slate-600">{v}</span> },
+            { title: '已分配权限', key: 'permissions', render: (_, role) => <PermTags perms={role.permissions || []} /> },
+            { title: '状态', dataIndex: 'status', key: 'status', render: (v) => (
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${v === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                {v === 'ACTIVE' ? '启用' : '停用'}
+              </span>
+            )},
+            { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400 whitespace-nowrap">{formatDateTime(v)}</span> },
+            { title: '操作', key: 'actions', render: (_, role) => (
+              <PermGuard perm="iam.role.assignPerm">
+                <Space size={4}>
+                  <button onClick={() => setEditRole(role)} title="编辑权限"
+                    className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-600">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                      <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  {BUILT_IN_ROLES.has(role.roleCode) ? (
+                    <span title="系统内置角色不可删除"
+                      className="grid h-7 w-7 place-items-center rounded-lg border border-slate-100 text-slate-200 cursor-not-allowed">
+                      <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                        <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
+                      </svg>
+                    </span>
+                  ) : (
+                    <button onClick={() => setDeleteTarget(role)} title="删除角色"
+                      className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500">
+                      <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                        <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
+                      </svg>
+                    </button>
+                  )}
+                </Space>
+              </PermGuard>
+            )},
+          ]}
+          dataSource={paged}
+          rowKey="id"
+          size="middle"
+          pagination={false}
+          loading={loading}
+          locale={{ emptyText: applied ? `未找到匹配"${applied}"的角色` : '暂无角色数据' }}
+        />
         <Pager total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </section>
 
@@ -445,27 +385,15 @@ export default function SystemRolesPage() {
 
       {/* 删除确认 Modal */}
       {deleteTarget && (
-        <Modal onClose={() => setDeleteTarget(null)} maxWidth="max-w-sm">
-          <div className="px-6 py-5">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" className="text-rose-500">
-                <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
-              </svg>
-            </div>
-            <h3 className="text-base font-semibold text-slate-800">确认删除角色</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              即将删除角色 <span className="font-medium text-slate-700">「{ROLE_LABEL[deleteTarget.roleCode] || deleteTarget.roleName}」</span>，
-              同时移除所有用户与该角色的绑定关系。此操作不可撤销。
-            </p>
-            <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setDeleteTarget(null)}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition">取消</button>
-              <button onClick={handleDelete} disabled={deleting}
-                className="rounded-xl bg-rose-500 px-5 py-2 text-sm text-white hover:bg-rose-600 disabled:opacity-50 transition">
-                {deleting ? '删除中...' : '确认删除'}
-              </button>
-            </div>
-          </div>
+        <Modal open onCancel={() => setDeleteTarget(null)} title="确认删除角色" width={480} destroyOnClose
+          footer={[
+            <Button key="cancel" onClick={() => setDeleteTarget(null)}>取消</Button>,
+            <Button key="ok" type="primary" danger onClick={handleDelete} loading={deleting}>确认删除</Button>,
+          ]}>
+          <p className="text-sm text-slate-500">
+            即将删除角色 <span className="font-medium text-slate-700">「{ROLE_LABEL[deleteTarget.roleCode] || deleteTarget.roleName}」</span>，
+            同时移除所有用户与该角色的绑定关系。此操作不可撤销。
+          </p>
         </Modal>
       )}
     </div>

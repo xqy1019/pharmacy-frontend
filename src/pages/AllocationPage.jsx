@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Modal, Button, Table, Space } from 'antd';
 import {
   cancelTransfer,
   createTransfer,
@@ -8,7 +9,6 @@ import {
   fetchTransfersOverview,
   signTransfer,
 } from '../api/pharmacy';
-import Modal from '../components/Modal';
 import Pager from '../components/Pager';
 import SummaryCard from '../components/SummaryCard';
 import { useToast } from '../context/ToastContext';
@@ -74,14 +74,43 @@ function CreateTransferModal({ onClose, onSuccess }) {
     }
   }
 
-  return (
-    <Modal onClose={onClose} maxWidth="max-w-2xl">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">新建调拨单</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
+  const transferItemColumns = [
+    { title: '药品名称 *', dataIndex: 'drugName', key: 'drugName', render: (_, __, idx) => (
+      <input value={items[idx].drugName} onChange={(e) => updateItem(idx, 'drugName', e.target.value)}
+        placeholder="药品名称"
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-cyan-300" />
+    )},
+    { title: '批号', dataIndex: 'batchNo', key: 'batchNo', width: 112, render: (_, __, idx) => (
+      <input value={items[idx].batchNo} onChange={(e) => updateItem(idx, 'batchNo', e.target.value)}
+        placeholder="批号（可选）"
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-cyan-300" />
+    )},
+    { title: '计划数量', dataIndex: 'plannedQty', key: 'plannedQty', width: 80, render: (_, __, idx) => (
+      <input type="number" min="1" value={items[idx].plannedQty} onChange={(e) => updateItem(idx, 'plannedQty', e.target.value)}
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-cyan-300" />
+    )},
+    { title: '备注', dataIndex: 'remark', key: 'remark', width: 112, render: (_, __, idx) => (
+      <input value={items[idx].remark} onChange={(e) => updateItem(idx, 'remark', e.target.value)}
+        placeholder="备注"
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-cyan-300" />
+    )},
+    { title: '', key: 'actions', width: 32, render: (_, __, idx) => (
+      items.length > 1 ? (
+        <button onClick={() => setItems((p) => p.filter((_, i) => i !== idx))}
+          className="text-rose-400 hover:text-rose-600">✕</button>
+      ) : null
+    )},
+  ];
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-6 py-4">
+  return (
+    <Modal open onCancel={onClose} title="新建调拨单" width={896} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>
+          {submitting ? '创建中...' : '创建调拨单'}
+        </Button>,
+      ]}>
+      <div className="space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1 block text-xs text-slate-500">发出方 *</label>
@@ -125,61 +154,11 @@ function CreateTransferModal({ onClose, onSuccess }) {
               + 添加行
             </button>
           </div>
-          <div className="overflow-hidden rounded-xl border border-slate-200">
-            <table className="min-w-full text-xs">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium">药品名称 *</th>
-                  <th className="px-3 py-2 text-left font-medium w-28">批号</th>
-                  <th className="px-3 py-2 text-left font-medium w-20">计划数量</th>
-                  <th className="px-3 py-2 text-left font-medium w-28">备注</th>
-                  <th className="w-8"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, idx) => (
-                  <tr key={idx} className="border-t border-slate-100">
-                    <td className="px-3 py-2">
-                      <input value={item.drugName} onChange={(e) => updateItem(idx, 'drugName', e.target.value)}
-                        placeholder="药品名称"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-300" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input value={item.batchNo} onChange={(e) => updateItem(idx, 'batchNo', e.target.value)}
-                        placeholder="批号（可选）"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-300" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input type="number" min="1" value={item.plannedQty} onChange={(e) => updateItem(idx, 'plannedQty', e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-300" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input value={item.remark} onChange={(e) => updateItem(idx, 'remark', e.target.value)}
-                        placeholder="备注"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-300" />
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      {items.length > 1 && (
-                        <button onClick={() => setItems((p) => p.filter((_, i) => i !== idx))}
-                          className="text-rose-400 hover:text-rose-600">✕</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table columns={transferItemColumns} dataSource={items} rowKey={(_, idx) => idx}
+            size="small" pagination={false} />
         </div>
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
-      </div>
-
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white transition hover:bg-cyan-700 disabled:opacity-50">
-          {submitting ? '创建中...' : '创建调拨单'}
-        </button>
       </div>
     </Modal>
   );
@@ -245,13 +224,38 @@ function ActionModal({ transferId, action, onClose, onSuccess }) {
     }
   }
 
+  const signColumns = [
+    { title: '药品名称', dataIndex: 'drugName', key: 'drugName', render: (v) => <span className="font-medium text-slate-700">{v}</span> },
+    { title: '批号', dataIndex: 'batchNo', key: 'batchNo', width: 112, render: (v) => <span className="font-mono text-slate-500">{v || '--'}</span> },
+    { title: '计划数量', dataIndex: 'plannedQty', key: 'plannedQty', width: 80, render: (v) => <span className="text-slate-600">{formatNumber(Number(v ?? 0))}</span> },
+    { title: '实收数量', key: 'actualQty', width: 96, render: (_, __, idx) => (
+      <input type="number" min="0" max={Number(items[idx]?.plannedQty ?? 0)}
+        value={lineActuals[idx]?.actualQty ?? ''}
+        onChange={(e) => updateActual(idx, e.target.value)}
+        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:border-emerald-300" />
+    )},
+    { title: '差异', key: 'diff', width: 64, render: (_, it, idx) => {
+      const planned = Number(it.plannedQty ?? 0);
+      const actual = Number(lineActuals[idx]?.actualQty ?? planned);
+      const diff = actual - planned;
+      return <span className={`font-medium ${diff < 0 ? 'text-rose-600' : diff > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+        {diff === 0 ? '—' : (diff > 0 ? `+${formatNumber(diff)}` : formatNumber(diff))}
+      </span>;
+    }},
+  ];
+
   return (
-    <Modal onClose={onClose} maxWidth={!isDispatch && items.length > 0 ? 'max-w-2xl' : 'max-w-md'}>
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-4">
+    <Modal open onCancel={onClose} title={title}
+      width={!isDispatch && items.length > 0 ? 896 : 560} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit}
+          loading={submitting}
+          disabled={submitting || loading || (hasDiff && !diffReason.trim())}>
+          {submitting ? '提交中...' : title}
+        </Button>,
+      ]}>
+      <div className="space-y-4">
         {loading ? (
           <div className="py-8 text-center text-slate-400">加载中...</div>
         ) : transfer ? (
@@ -273,46 +277,8 @@ function ActionModal({ transferId, action, onClose, onSuccess }) {
             {!isDispatch && items.length > 0 && (
               <div>
                 <p className="mb-2 text-xs font-medium text-slate-600">明细实收数量</p>
-                <div className="overflow-hidden rounded-xl border border-slate-200">
-                  <table className="min-w-full text-xs">
-                    <thead className="bg-slate-50 text-slate-500">
-                      <tr>
-                        <th className="px-3 py-2 text-left font-medium">药品名称</th>
-                        <th className="px-3 py-2 text-left font-medium w-28">批号</th>
-                        <th className="px-3 py-2 text-left font-medium w-20">计划数量</th>
-                        <th className="px-3 py-2 text-left font-medium w-24">实收数量</th>
-                        <th className="px-3 py-2 text-left font-medium w-16">差异</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((it, idx) => {
-                        const planned = Number(it.plannedQty ?? 0);
-                        const actual = Number(lineActuals[idx]?.actualQty ?? planned);
-                        const diff = actual - planned;
-                        return (
-                          <tr key={idx} className="border-t border-slate-100">
-                            <td className="px-3 py-2 font-medium text-slate-700">{it.drugName}</td>
-                            <td className="px-3 py-2 font-mono text-slate-500">{it.batchNo || '--'}</td>
-                            <td className="px-3 py-2 text-slate-600">{formatNumber(planned)}</td>
-                            <td className="px-3 py-2">
-                              <input
-                                type="number"
-                                min="0"
-                                max={planned}
-                                value={lineActuals[idx]?.actualQty ?? ''}
-                                onChange={(e) => updateActual(idx, e.target.value)}
-                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700 outline-none focus:border-emerald-300"
-                              />
-                            </td>
-                            <td className={`px-3 py-2 font-medium ${diff < 0 ? 'text-rose-600' : diff > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                              {diff === 0 ? '—' : (diff > 0 ? `+${formatNumber(diff)}` : formatNumber(diff))}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <Table columns={signColumns} dataSource={items} rowKey={(_, idx) => idx}
+                  size="small" pagination={false} />
               </div>
             )}
 
@@ -337,16 +303,9 @@ function ActionModal({ transferId, action, onClose, onSuccess }) {
           </>
         ) : null}
         {error && <p className="text-sm text-rose-600">{error}</p>}
-      </div>
-      {hasDiff && !diffReason.trim() && (
-        <p className="px-6 pb-2 text-xs text-rose-500">请填写差异原因后方可提交</p>
-      )}
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting || loading || (hasDiff && !diffReason.trim())}
-          className={`rounded-xl px-5 py-2 text-sm text-white transition disabled:opacity-50 ${isDispatch ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
-          {submitting ? '提交中...' : title}
-        </button>
+        {hasDiff && !diffReason.trim() && (
+          <p className="text-xs text-rose-500">请填写差异原因后方可提交</p>
+        )}
       </div>
     </Modal>
   );
@@ -405,9 +364,12 @@ export default function AllocationPage() {
       {overview && (
         <section className="grid gap-4 md:grid-cols-3">
           {[
-            { label: '调拨总数', value: formatNumber(overview.total), detail: '全部调拨单', accent: toneAccents[0] },
-            { label: '在途订单', value: formatNumber(overview.inTransit ?? overview.dispatched), detail: '已发货未签收', accent: toneAccents[1] },
-            { label: '本月完成', value: formatNumber(overview.completedThisMonth ?? overview.signed), detail: '已签收完成', accent: toneAccents[2] },
+            { label: '调拨总数', value: formatNumber(overview.total), detail: '全部调拨单', accent: toneAccents[0],
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg> },
+            { label: '在途订单', value: formatNumber(overview.inTransit ?? overview.dispatched), detail: '已发货未签收', accent: toneAccents[1],
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> },
+            { label: '本月完成', value: formatNumber(overview.completedThisMonth ?? overview.signed), detail: '已签收完成', accent: toneAccents[2],
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
           ].map((item) => (
             <SummaryCard key={item.label} {...item} />
           ))}
@@ -441,70 +403,51 @@ export default function AllocationPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="py-16 text-center text-slate-400">加载中...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-5 py-3 font-medium pl-6">调拨单号</th>
-                  <th className="px-5 py-3 font-medium">发出方</th>
-                  <th className="px-5 py-3 font-medium">接收方</th>
-                  <th className="px-5 py-3 font-medium">药品名称</th>
-                  <th className="px-5 py-3 font-medium">承运商</th>
-                  <th className="px-5 py-3 font-medium">状态</th>
-                  <th className="px-5 py-3 font-medium">创建时间</th>
-                  <th className="px-5 py-3 font-medium pr-6">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedRows.map((t) => (
-                  <tr key={t.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                    <td className="px-5 py-3 pl-6 font-mono text-xs text-slate-500">{t.orderNo || '--'}</td>
-                    <td className="px-5 py-3 font-medium">{t.fromStore}</td>
-                    <td className="px-5 py-3">{t.toStore}</td>
-                    <td className="px-5 py-3 text-sm text-slate-600">
-                      {t.itemSummary || (t.items?.length > 0
-                        ? t.items.map((i) => i.drugName).filter(Boolean).join('、')
-                        : '--')}
-                    </td>
-                    <td className="px-5 py-3 text-slate-500">{t.carrierName || '--'}</td>
-                    <td className="px-5 py-3"><Badge status={t.status} /></td>
-                    <td className="px-5 py-3 text-xs text-slate-400">{formatDateTime(t.createdAt)}</td>
-                    <td className="px-5 py-3 pr-6">
-                      <div className="flex items-center gap-2">
-                        {t.status === 'PENDING' && (
-                          <>
-                            <button onClick={() => setActionState({ id: t.id, action: 'dispatch' })}
-                              className="rounded-lg bg-cyan-600 px-3 py-1 text-xs text-white transition hover:bg-cyan-700">
-                              发货
-                            </button>
-                            <button disabled={cancellingId === t.id} onClick={() => handleCancel(t.id)}
-                              className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
-                              {cancellingId === t.id ? '取消中...' : '取消'}
-                            </button>
-                          </>
-                        )}
-                        {t.status === 'DISPATCHED' && (
-                          <button onClick={() => setActionState({ id: t.id, action: 'sign' })}
-                            className="rounded-lg bg-emerald-600 px-3 py-1 text-xs text-white transition hover:bg-emerald-700">
-                            签收
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {pagedRows.length === 0 && (
-                  <tr className="border-t border-slate-100">
-                    <td colSpan={8} className="px-5 py-10 text-center text-slate-500">暂无调拨记录</td>
-                  </tr>
+        <Table
+          columns={[
+            { title: '调拨单号', dataIndex: 'orderNo', key: 'orderNo', render: (v) => <span className="font-mono text-xs text-slate-500">{v || '--'}</span> },
+            { title: '发出方', dataIndex: 'fromStore', key: 'fromStore', render: (v) => <span className="font-medium">{v}</span> },
+            { title: '接收方', dataIndex: 'toStore', key: 'toStore' },
+            { title: '药品名称', key: 'drugNames', render: (_, t) => (
+              <span className="text-sm text-slate-600">
+                {t.itemSummary || (t.items?.length > 0
+                  ? t.items.map((i) => i.drugName).filter(Boolean).join('、')
+                  : '--')}
+              </span>
+            )},
+            { title: '承运商', dataIndex: 'carrierName', key: 'carrierName', render: (v) => <span className="text-slate-500">{v || '--'}</span> },
+            { title: '状态', dataIndex: 'status', key: 'status', render: (v) => <Badge status={v} /> },
+            { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400">{formatDateTime(v)}</span> },
+            { title: '操作', key: 'actions', render: (_, t) => (
+              <Space>
+                {t.status === 'PENDING' && (
+                  <>
+                    <button onClick={() => setActionState({ id: t.id, action: 'dispatch' })}
+                      className="rounded-lg bg-cyan-600 px-3 py-1 text-xs text-white transition hover:bg-cyan-700">
+                      发货
+                    </button>
+                    <button disabled={cancellingId === t.id} onClick={() => handleCancel(t.id)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
+                      {cancellingId === t.id ? '取消中...' : '取消'}
+                    </button>
+                  </>
                 )}
-              </tbody>
-            </table>
-          </div>
-        )}
+                {t.status === 'DISPATCHED' && (
+                  <button onClick={() => setActionState({ id: t.id, action: 'sign' })}
+                    className="rounded-lg bg-emerald-600 px-3 py-1 text-xs text-white transition hover:bg-emerald-700">
+                    签收
+                  </button>
+                )}
+              </Space>
+            )},
+          ]}
+          dataSource={pagedRows}
+          rowKey="id"
+          size="middle"
+          pagination={false}
+          loading={loading}
+          locale={{ emptyText: '暂无调拨记录' }}
+        />
 
         <Pager total={filtered.length} page={page} pageSize={pageSize}
           onPageChange={setPage}

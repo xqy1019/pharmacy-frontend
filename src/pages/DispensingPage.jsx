@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { Modal, Popconfirm, Table } from 'antd';
 import {
   dispensePrescription,
   fetchPrescriptionDetail,
@@ -6,7 +7,6 @@ import {
   reviewPrescription,
   streamAIPrescriptionReview,
 } from '../api/pharmacy';
-import Modal from '../components/Modal';
 import Pager from '../components/Pager';
 import { useToast } from '../context/ToastContext';
 import { useAsyncData } from '../hooks/useAsyncData';
@@ -119,7 +119,7 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
     }
   }
 
-  async function handleReview(pass) {
+  async function doReview(pass) {
     setSubmitting(true); setReviewError('');
     try {
       await reviewPrescription(prescriptionId, { pass, reviewNote, reviewerName: 'admin' });
@@ -130,6 +130,13 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleReview(pass) {
+    if (!pass || rx?.riskLevel !== 'HIGH') {
+      doReview(pass);
+    }
+    // HIGH 风险时由 Popconfirm 拦截，onConfirm 回调中执行 doReview(true)
   }
 
   async function handleDispense() {
@@ -160,26 +167,89 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
     return groups;
   }, [issues]);
 
+  const drugColumns = [
+    { title: '药品名称', dataIndex: 'drugName', key: 'drugName', render: (v) => <span className="font-medium">{v}</span> },
+    { title: '剂量', dataIndex: 'dose', key: 'dose', render: (v) => v || '--' },
+    { title: '频次', dataIndex: 'frequency', key: 'frequency', render: (v) => v || '--' },
+    { title: '途径', dataIndex: 'route', key: 'route', render: (v) => v || '--' },
+    { title: '天数', dataIndex: 'days', key: 'days', render: (v) => `${v}天` },
+    { title: '数量', dataIndex: 'qty', key: 'qty' },
+  ];
+
+  const btnBase = 'inline-flex items-center justify-center rounded-xl px-5 h-10 text-sm font-medium transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
+  const btnGhost = `${btnBase} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 min-w-[88px]`;
+  const btnDanger = `${btnBase} border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 min-w-[88px]`;
+  const btnGreen = `${btnBase} bg-emerald-600 text-white hover:bg-emerald-700 min-w-[104px]`;
+  const btnBlue = `${btnBase} bg-blue-600 text-white hover:bg-blue-700 min-w-[104px]`;
+
+  const footer = (
+    <div className="flex items-center justify-end gap-3 pt-1">
+      <button type="button" className={btnGhost} onClick={onClose}>关闭</button>
+      {isPending && (
+        <>
+          <button type="button" className={btnDanger}
+            disabled={submitting}
+            onClick={() => handleReview(false)}>
+            驳回
+          </button>
+          {rx?.riskLevel === 'HIGH' ? (
+            <Popconfirm
+              title="确认强制通过高风险处方？"
+              description={
+                <div style={{ maxWidth: 220 }} className="text-sm leading-relaxed text-slate-600">
+                  该处方存在 <strong className="text-rose-600">高风险</strong> 问题项，系统建议驳回。
+                  强制通过后将直接允许发药，请确认已知晓。
+                </div>
+              }
+              icon={<span style={{ color: '#ef4444', marginRight: 4 }}>⚠</span>}
+              okText="确认强制通过"
+              cancelText="取消"
+              okButtonProps={{ danger: true, style: { marginLeft: 8 } }}
+              onConfirm={() => doReview(true)}
+            >
+              <button type="button" className={btnGreen} disabled={submitting}>审核通过</button>
+            </Popconfirm>
+          ) : (
+            <button type="button" className={btnGreen}
+              disabled={submitting}
+              onClick={() => doReview(true)}>
+              审核通过
+            </button>
+          )}
+        </>
+      )}
+      {isApproved && (
+        <button type="button" className={btnBlue}
+          disabled={dispensing}
+          onClick={handleDispense}>
+          确认发药
+        </button>
+      )}
+    </div>
+  );
+
   return (
-    <Modal onClose={onClose} maxWidth="max-w-3xl">
-      {/* 头部 */}
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+    <Modal
+      open
+      centered
+      onCancel={onClose}
+      title={
         <div className="flex items-center gap-3">
-          <h3 className="text-base font-semibold text-slate-800">审方工作台</h3>
+          <span className="text-base font-semibold text-slate-800">审方工作台</span>
           {rx && <span className="font-mono text-sm text-slate-400">{rx.rxNo}</span>}
           {rx && badge(RX_TYPE_MAP, rx.rxType)}
         </div>
-        <button type="button" onClick={onClose}
-          className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">✕</button>
-      </div>
-
+      }
+      width={1024}
+      footer={footer}
+      destroyOnClose
+    >
       {loading ? (
-        <div className="flex flex-1 items-center justify-center py-16 text-slate-500">加载中...</div>
+        <div className="flex items-center justify-center py-16 text-slate-500">加载中...</div>
       ) : rx ? (
-        <div className="flex-1 overflow-y-auto">
-
+        <div>
           {/* 患者基本信息 */}
-          <div className="grid grid-cols-2 gap-4 border-b border-slate-100 px-6 py-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 border-b border-slate-100 py-4 sm:grid-cols-4">
             {[
               { label: '患者', value: `${rx.patientName}${rx.patientGender ? `（${rx.patientGender}）` : ''}${rx.patientAge ? ` ${rx.patientAge}岁` : ''}` },
               { label: '医生', value: rx.doctorName },
@@ -195,7 +265,7 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
 
           {/* 过敏史提醒 */}
           {rx.allergyNotes ? (
-            <div className="mx-6 mt-4 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
               <span className="mt-0.5 text-base text-rose-500">⚠</span>
               <div>
                 <p className="text-sm font-semibold text-rose-700">过敏史记录</p>
@@ -203,14 +273,14 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
               </div>
             </div>
           ) : (
-            <div className="mx-6 mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
               <span className="text-slate-400 text-sm">✓</span>
               <p className="text-sm text-slate-500">暂无过敏史记录</p>
             </div>
           )}
 
           {/* 状态与风险 */}
-          <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-3 mt-3">
+          <div className="flex items-center gap-3 border-b border-slate-100 py-3 mt-3">
             {badge(STATUS_MAP, rx.status)}
             {badge(RISK_MAP, rx.riskLevel)}
             {issues.length > 0 && (
@@ -222,7 +292,7 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
 
           {/* 规则检测结果（有历史分析时展示） */}
           {issues.length > 0 && (
-            <div className="border-b border-slate-100 px-6 py-4">
+            <div className="border-b border-slate-100 py-4">
               <p className="mb-3 text-sm font-semibold text-slate-700">规则检测结果</p>
               <div className="space-y-2">
                 {Object.entries(issuesByType).map(([type, list]) => {
@@ -254,35 +324,19 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
           )}
 
           {/* 药品明细 */}
-          <div className="px-6 py-4">
+          <div className="py-4">
             <p className="mb-3 text-sm font-semibold text-slate-700">药品明细（{rx.items?.length || 0} 项）</p>
-            <div className="overflow-hidden rounded-[14px] border border-slate-200">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs text-slate-500">
-                  <tr>
-                    {['药品名称', '剂量', '频次', '途径', '天数', '数量'].map((col) => (
-                      <th key={col} className="px-4 py-2.5 font-medium first:pl-5 last:pr-5">{col}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(rx.items || []).map((item) => (
-                    <tr key={item.id} className="border-t border-slate-100 text-slate-700">
-                      <td className="px-4 py-2.5 pl-5 font-medium">{item.drugName}</td>
-                      <td className="px-4 py-2.5">{item.dose || '--'}</td>
-                      <td className="px-4 py-2.5">{item.frequency || '--'}</td>
-                      <td className="px-4 py-2.5">{item.route || '--'}</td>
-                      <td className="px-4 py-2.5">{item.days}天</td>
-                      <td className="px-4 py-2.5 pr-5">{item.qty}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              columns={drugColumns}
+              dataSource={rx.items || []}
+              rowKey="id"
+              size="small"
+              pagination={false}
+            />
           </div>
 
           {/* AI 分析区 */}
-          <div className="border-t border-slate-100 px-6 py-4">
+          <div className="border-t border-slate-100 py-4">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-bold text-white">AI</div>
@@ -330,7 +384,7 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
 
           {/* 审方备注 */}
           {isPending && (
-            <div className="border-t border-slate-100 px-6 py-4">
+            <div className="border-t border-slate-100 py-4">
               <p className="mb-2 text-sm font-semibold text-slate-700">审方备注</p>
               <textarea
                 value={reviewNote}
@@ -344,7 +398,7 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
 
           {/* 已审结信息 */}
           {!isPending && rx.reviewNote && (
-            <div className="border-t border-slate-100 px-6 py-4">
+            <div className="border-t border-slate-100 py-4">
               <p className="mb-1 text-xs text-slate-400">审方备注</p>
               <p className="text-sm text-slate-600">{rx.reviewNote}</p>
               <p className="mt-1 text-xs text-slate-400">
@@ -355,50 +409,19 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
 
           {/* 发药记录 */}
           {rx.status === 'DISPENSED' && rx.dispensedAt && (
-            <div className="border-t border-slate-100 px-6 py-4">
+            <div className="border-t border-slate-100 py-4">
               <p className="mb-1 text-xs text-slate-400">发药记录</p>
               <p className="text-xs text-slate-400">
                 发药人：{rx.dispensedBy || '--'} · {formatDateTime(rx.dispensedAt)}
               </p>
             </div>
           )}
+
+          {reviewError && (
+            <div className="rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{reviewError}</div>
+          )}
         </div>
       ) : null}
-
-      {/* 底部操作栏 */}
-      {reviewError && (
-        <div className="mx-6 mb-2 rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{reviewError}</div>
-      )}
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button type="button" onClick={onClose}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50">
-          关闭
-        </button>
-
-        {/* 待审核：驳回 + 通过 */}
-        {isPending && (
-          <>
-            <button type="button" disabled={submitting} onClick={() => handleReview(false)}
-              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-50">
-              {submitting ? '提交中...' : '驳回'}
-            </button>
-            <button type="button" disabled={submitting} onClick={() => handleReview(true)}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50">
-              {submitting ? '提交中...' : '审核通过'}
-            </button>
-          </>
-        )}
-
-        {/* 已通过（待发药）：发药确认 */}
-        {isApproved && (
-          <button type="button" disabled={dispensing} onClick={handleDispense}
-            className="flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-sky-700 disabled:opacity-50">
-            {dispensing
-              ? '发药中...'
-              : <><span className="text-base">💊</span> 确认发药</>}
-          </button>
-        )}
-      </div>
     </Modal>
   );
 }
@@ -466,21 +489,26 @@ export default function DispensingPage() {
       {/* 统计卡 */}
       <section className="grid gap-4 md:grid-cols-4">
         {[
-          { label: '待审核',  value: formatNumber(stats.pending),   sub: '需尽快处理',   accent: 'from-amber-500 to-orange-500' },
-          { label: '待发药',  value: formatNumber(stats.approved),  sub: '已通过审核',   accent: 'from-sky-500 to-cyan-500' },
-          { label: '今日已发药', value: formatNumber(stats.dispensed), sub: '已完成发药', accent: 'from-emerald-500 to-teal-500' },
-          { label: '高风险处方', value: formatNumber(stats.highRisk), sub: '需重点关注',  accent: 'from-rose-500 to-red-500' },
+          { label: '待审核',  value: formatNumber(stats.pending),   sub: '需尽快处理',   accent: 'from-amber-500 to-orange-500',
+            icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 12 2 2 4-4"/></svg> },
+          { label: '待发药',  value: formatNumber(stats.approved),  sub: '已通过审核',   accent: 'from-sky-500 to-cyan-500',
+            icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> },
+          { label: '今日已发药', value: formatNumber(stats.dispensed), sub: '已完成发药', accent: 'from-emerald-500 to-teal-500',
+            icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
+          { label: '高风险处方', value: formatNumber(stats.highRisk), sub: '需重点关注',  accent: 'from-rose-500 to-red-500',
+            icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
         ].map((item) => (
           <article key={item.label}
-            className="rounded-2xl border border-white bg-white p-5 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
+            className="relative overflow-hidden rounded-2xl border border-white bg-white p-5 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm text-slate-500">{item.label}</p>
-                <strong className="mt-4 block text-[20px] font-semibold text-slate-800">{item.value}</strong>
-                <p className="mt-2 text-sm text-slate-500">{item.sub}</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{item.label}</p>
+                <strong className="mt-3 block text-[22px] font-bold text-slate-900">{item.value}</strong>
+                <p className="mt-1.5 text-sm text-slate-500">{item.sub}</p>
               </div>
-              <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${item.accent} text-sm font-semibold text-white`}>·</div>
+              <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${item.accent} text-white shadow-lg`}>{item.icon}</div>
             </div>
+            <div className={`absolute bottom-0 left-0 h-0.5 w-full bg-gradient-to-r ${item.accent} opacity-60`} />
           </article>
         ))}
       </section>
@@ -551,59 +579,50 @@ export default function DispensingPage() {
 
         {/* 表格 */}
         <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  {['处方号', '类型', '患者', '过敏史', '医生', '科室', '药品数', '风险', '状态', '开方时间', '操作'].map((col) => (
-                    <th key={col} className="px-4 py-3 font-medium first:pl-5 last:pr-5">{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pagedRows.map((rx) => (
-                  <tr key={rx.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                    <td className="px-4 py-3 pl-5 font-mono text-xs text-slate-500">{rx.rxNo}</td>
-                    <td className="px-4 py-3">{badge(RX_TYPE_MAP, rx.rxType)}</td>
-                    <td className="px-4 py-3 font-medium text-slate-800">{rx.patientName}</td>
-                    <td className="px-4 py-3">
-                      {rx.allergyNotes
-                        ? <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-600 border border-rose-200">
-                            <span>⚠</span> 有过敏史
-                          </span>
-                        : <span className="text-xs text-slate-400">--</span>}
-                    </td>
-                    <td className="px-4 py-3">{rx.doctorName}</td>
-                    <td className="px-4 py-3 text-slate-500">{rx.departmentName || '--'}</td>
-                    <td className="px-4 py-3 text-center">{rx.itemCount}</td>
-                    <td className="px-4 py-3">{badge(RISK_MAP, rx.riskLevel)}</td>
-                    <td className="px-4 py-3">{badge(STATUS_MAP, rx.status)}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400">{formatDateTime(rx.createdAt)}</td>
-                    <td className="px-4 py-3 pr-5">
-                      <button
-                        type="button"
-                        onClick={() => setReviewId(rx.id)}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                          rx.status === 'PENDING'
-                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                            : rx.status === 'APPROVED'
-                            ? 'bg-sky-600 text-white hover:bg-sky-700'
-                            : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        {rx.status === 'PENDING' ? '审方' : rx.status === 'APPROVED' ? '发药' : '查看'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {pagedRows.length === 0 && (
-                  <tr className="border-t border-slate-100">
-                    <td colSpan={11} className="px-5 py-10 text-center text-slate-500">暂无处方数据</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            columns={[
+              { title: '处方号', dataIndex: 'rxNo', key: 'rxNo', render: (v) => <span className="font-mono text-xs text-slate-500">{v}</span> },
+              { title: '类型', dataIndex: 'rxType', key: 'rxType', render: (v) => badge(RX_TYPE_MAP, v) },
+              { title: '患者', dataIndex: 'patientName', key: 'patientName', render: (v) => <span className="font-medium text-slate-800">{v}</span> },
+              {
+                title: '过敏史', dataIndex: 'allergyNotes', key: 'allergyNotes',
+                render: (v) => v
+                  ? <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-600 border border-rose-200">
+                      <span>⚠</span> 有过敏史
+                    </span>
+                  : <span className="text-xs text-slate-400">--</span>,
+              },
+              { title: '医生', dataIndex: 'doctorName', key: 'doctorName' },
+              { title: '科室', dataIndex: 'departmentName', key: 'departmentName', render: (v) => <span className="text-slate-500">{v || '--'}</span> },
+              { title: '药品数', dataIndex: 'itemCount', key: 'itemCount', align: 'center' },
+              { title: '风险', dataIndex: 'riskLevel', key: 'riskLevel', render: (v) => badge(RISK_MAP, v) },
+              { title: '状态', dataIndex: 'status', key: 'status', render: (v) => badge(STATUS_MAP, v) },
+              { title: '开方时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400">{formatDateTime(v)}</span> },
+              {
+                title: '操作', key: 'actions',
+                render: (_, rx) => (
+                  <button
+                    type="button"
+                    onClick={() => setReviewId(rx.id)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                      rx.status === 'PENDING'
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : rx.status === 'APPROVED'
+                        ? 'bg-sky-600 text-white hover:bg-sky-700'
+                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {rx.status === 'PENDING' ? '审方' : rx.status === 'APPROVED' ? '发药' : '查看'}
+                  </button>
+                ),
+              },
+            ]}
+            dataSource={pagedRows}
+            rowKey="id"
+            size="middle"
+            pagination={false}
+            locale={{ emptyText: '暂无处方数据' }}
+          />
           <Pager
             total={filtered.length}
             page={page}

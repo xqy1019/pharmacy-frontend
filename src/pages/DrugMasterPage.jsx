@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
+import { Modal, Button, Table, Space } from 'antd';
 import { createDrug, deleteDrug, fetchDrugs, updateDrug } from '../api/pharmacy';
-import Modal from '../components/Modal';
 import Pager from '../components/Pager';
 import PermGuard from '../components/PermGuard';
 import { useToast } from '../context/ToastContext';
@@ -92,17 +92,25 @@ function DrugFormModal({ drug, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-3xl">
-      {/* 标题栏 */}
-      <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+    <Modal
+      open
+      onCancel={onClose}
+      title={
         <div>
-          <h2 className="text-base font-semibold text-slate-900">{isEdit ? '编辑药品档案' : '新增药品'}</h2>
-          <p className="mt-0.5 text-xs text-slate-400">{isEdit ? `编辑 ${drug.name}` : '填写药品基本信息并保存至档案库'}</p>
+          <div className="text-base font-semibold text-slate-900">{isEdit ? '编辑药品档案' : '新增药品'}</div>
+          <p className="mt-0.5 text-xs text-slate-400 font-normal">{isEdit ? `编辑 ${drug.name}` : '填写药品基本信息并保存至档案库'}</p>
         </div>
-        <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">✕</button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 py-5">
+      }
+      width={1024}
+      destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>
+          {isEdit ? '保存修改' : '新增药品'}
+        </Button>,
+      ]}
+    >
+      <div className="py-2">
         {/* 基本信息 */}
         <div className="mb-2 flex items-center gap-2">
           <span className="h-3.5 w-1 rounded-full bg-indigo-500" />
@@ -194,16 +202,6 @@ function DrugFormModal({ drug, onClose, onSuccess }) {
           </div>
         )}
       </div>
-
-      <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-50">
-          取消
-        </button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50">
-          {submitting ? '保存中...' : (isEdit ? '保存修改' : '新增药品')}
-        </button>
-      </div>
     </Modal>
   );
 }
@@ -227,26 +225,27 @@ function DeleteDrugModal({ drug, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-sm">
-      <div className="px-6 py-5">
+    <Modal
+      open
+      onCancel={onClose}
+      title="确认删除药品"
+      width={480}
+      destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" danger onClick={handleDelete} loading={deleting}>确认删除</Button>,
+      ]}
+    >
+      <div className="py-2">
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50">
           <svg width="22" height="22" viewBox="0 0 16 16" fill="none" className="text-rose-500">
             <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
           </svg>
         </div>
-        <h3 className="text-base font-semibold text-slate-800">确认删除药品</h3>
-        <p className="mt-2 text-sm text-slate-500">
-          即将删除药品 <span className="font-medium text-slate-700">「{drug.name}」</span>（编码：{drug.drugCode}）。
+        <p className="text-sm text-slate-500">
+          即将删除药品 <span className="font-medium text-slate-700">{drug.name}</span>（编码：{drug.drugCode}）。
           若该药品已有库存批次或历史记录，建议先清理数据再删除。此操作不可撤销。
         </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition">取消</button>
-          <button onClick={handleDelete} disabled={deleting}
-            className="rounded-xl bg-rose-500 px-5 py-2 text-sm text-white hover:bg-rose-600 disabled:opacity-50 transition">
-            {deleting ? '删除中...' : '确认删除'}
-          </button>
-        </div>
       </div>
     </Modal>
   );
@@ -344,68 +343,48 @@ export default function DrugMasterPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="py-16 text-center text-slate-400">加载中...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-5 py-3 font-medium pl-6">药品编码</th>
-                  <th className="px-5 py-3 font-medium">药品名称</th>
-                  <th className="px-5 py-3 font-medium">规格</th>
-                  <th className="px-5 py-3 font-medium">剂型</th>
-                  <th className="px-5 py-3 font-medium">分类</th>
-                  <th className="px-5 py-3 font-medium">类型</th>
-                  <th className="px-5 py-3 font-medium">厂家</th>
-                  <th className="px-5 py-3 font-medium">预警阈值</th>
-                  <th className="px-5 py-3 font-medium pr-6">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedRows.map((drug) => (
-                  <tr key={drug.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                    <td className="px-5 py-3 pl-6 font-mono text-xs text-slate-500">{drug.drugCode}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-medium">{drug.name}</span>
-                        {drug.isHighAlert && (
-                          <span className="rounded-full bg-rose-100 px-1.5 py-0.5 text-xs font-medium text-rose-700">高警示</span>
-                        )}
-                      </div>
-                      {drug.genericName && <p className="text-xs text-slate-400">{drug.genericName}</p>}
-                    </td>
-                    <td className="px-5 py-3 text-slate-500">{drug.spec}</td>
-                    <td className="px-5 py-3 text-slate-500">{drug.dosageForm}</td>
-                    <td className="px-5 py-3 text-slate-500">{drug.category}</td>
-                    <td className="px-5 py-3"><TypeBadge type={drug.drugType} /></td>
-                    <td className="px-5 py-3 text-slate-500 text-xs">{drug.manufacturer || '--'}</td>
-                    <td className="px-5 py-3 text-slate-500">{formatNumber(drug.lowStockThreshold)}</td>
-                    <td className="px-5 py-3 pr-6">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setFormDrug(drug)}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-50">
-                          编辑
-                        </button>
-                        <PermGuard perm="drug.delete">
-                          <button onClick={() => setDeleteDrugTarget(drug)}
-                            className="rounded-lg border border-rose-100 bg-white px-3 py-1 text-xs text-rose-500 transition hover:bg-rose-50">
-                            删除
-                          </button>
-                        </PermGuard>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {pagedRows.length === 0 && (
-                  <tr className="border-t border-slate-100">
-                    <td colSpan={9} className="px-5 py-10 text-center text-slate-500">暂无药品数据</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Table
+          columns={[
+            { title: '药品编码', dataIndex: 'drugCode', key: 'drugCode', render: (v) => <span className="font-mono text-xs text-slate-500">{v}</span> },
+            { title: '药品名称', dataIndex: 'name', key: 'name', render: (_, drug) => (
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-medium">{drug.name}</span>
+                  {drug.isHighAlert && (
+                    <span className="rounded-full bg-rose-100 px-1.5 py-0.5 text-xs font-medium text-rose-700">高警示</span>
+                  )}
+                </div>
+                {drug.genericName && <p className="text-xs text-slate-400">{drug.genericName}</p>}
+              </div>
+            )},
+            { title: '规格', dataIndex: 'spec', key: 'spec' },
+            { title: '剂型', dataIndex: 'dosageForm', key: 'dosageForm' },
+            { title: '分类', dataIndex: 'category', key: 'category' },
+            { title: '类型', dataIndex: 'drugType', key: 'drugType', render: (v) => <TypeBadge type={v} /> },
+            { title: '厂家', dataIndex: 'manufacturer', key: 'manufacturer', render: (v) => <span className="text-xs">{v || '--'}</span> },
+            { title: '预警阈值', dataIndex: 'lowStockThreshold', key: 'lowStockThreshold', render: (v) => formatNumber(v) },
+            { title: '操作', key: 'actions', render: (_, drug) => (
+              <Space>
+                <button onClick={() => setFormDrug(drug)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-50">
+                  编辑
+                </button>
+                <PermGuard perm="drug.delete">
+                  <button onClick={() => setDeleteDrugTarget(drug)}
+                    className="rounded-lg border border-rose-100 bg-white px-3 py-1 text-xs text-rose-500 transition hover:bg-rose-50">
+                    删除
+                  </button>
+                </PermGuard>
+              </Space>
+            )},
+          ]}
+          dataSource={pagedRows}
+          rowKey="id"
+          size="middle"
+          loading={loading}
+          pagination={false}
+          locale={{ emptyText: '暂无药品数据' }}
+        />
 
         <Pager total={filtered.length} page={page} pageSize={pageSize}
           onPageChange={setPage}

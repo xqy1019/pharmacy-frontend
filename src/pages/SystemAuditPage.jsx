@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Table } from 'antd';
 import { fetchAuditLogs } from '../api/pharmacy';
 import Pager from '../components/Pager';
 import PermGuard from '../components/PermGuard';
@@ -125,56 +126,34 @@ export default function SystemAuditPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="py-20 text-center text-sm text-slate-400">加载中...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs text-slate-500">
-                <tr>
-                  <th className="px-6 py-3 font-medium">操作人</th>
-                  <th className="px-4 py-3 font-medium">模块</th>
-                  <th className="px-4 py-3 font-medium">操作类型</th>
-                  <th className="px-4 py-3 font-medium">目标对象</th>
-                  <th className="px-4 py-3 font-medium">IP 地址</th>
-                  <th className="px-4 py-3 font-medium pr-6">操作时间</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paged.map((l) => (
-                  <tr key={l.id} className="border-t border-slate-100 transition hover:bg-slate-50/70">
-                    <td className="px-6 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
-                          {String(l.username || l.operatorName || '?').slice(0, 1).toUpperCase()}
-                        </div>
-                        <span className="font-medium text-slate-700">{l.username || l.operatorName || '--'}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${MODULE_BADGE[l.module] || 'bg-slate-100 text-slate-500'}`}>
-                        {MODULE_OPTIONS.find((o) => o.value === l.module)?.label || l.module || '--'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
-                        {l.action || '--'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-500">{l.targetId || l.resourceId || '--'}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-400">{l.ipAddress || l.ip || '--'}</td>
-                    <td className="px-4 py-3 pr-6 text-xs text-slate-400">{formatDateTime(l.createdAt)}</td>
-                  </tr>
-                ))}
-                {paged.length === 0 && (
-                  <tr><td colSpan={6} className="py-12 text-center text-slate-400">
-                    {loading ? '加载中...' : '暂无审计日志'}
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Table
+          columns={[
+            { title: '操作人', key: 'operator', render: (_, l) => (
+              <div className="flex items-center gap-2">
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
+                  {String(l.username || l.operatorName || '?').slice(0, 1).toUpperCase()}
+                </div>
+                <span className="font-medium text-slate-700">{l.username || l.operatorName || '--'}</span>
+              </div>
+            )},
+            { title: '模块', dataIndex: 'module', key: 'module', render: (v) => (
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${MODULE_BADGE[v] || 'bg-slate-100 text-slate-500'}`}>
+                {MODULE_OPTIONS.find((o) => o.value === v)?.label || v || '--'}
+              </span>
+            )},
+            { title: '操作类型', dataIndex: 'action', key: 'action', render: (v) => (
+              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">{v || '--'}</span>
+            )},
+            { title: '目标对象', key: 'target', render: (_, l) => <span className="font-mono text-xs text-slate-500">{l.targetId || l.resourceId || '--'}</span> },
+            { title: 'IP 地址', key: 'ip', render: (_, l) => <span className="font-mono text-xs text-slate-400">{l.ipAddress || l.ip || '--'}</span> },
+            { title: '操作时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400">{formatDateTime(v)}</span> },
+          ]}
+          dataSource={paged}
+          rowKey="id"
+          size="middle"
+          pagination={false}
+          loading={loading}
+        />
 
         <Pager total={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} />
       </section>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
+import { Button, Modal, Space, Table } from 'antd';
 import { assignUserRoles, createUser, deleteUser, fetchRoles, fetchUsers, updateUser } from '../api/pharmacy';
-import Modal from '../components/Modal';
 import Pager from '../components/Pager';
 import PermGuard from '../components/PermGuard';
 import { ROLE_COLOR, ROLE_LABEL } from '../config/permissions';
@@ -27,27 +27,15 @@ function DeleteUserModal({ targetUser, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-sm">
-      <div className="px-6 py-5">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50">
-          <svg width="22" height="22" viewBox="0 0 16 16" fill="none" className="text-rose-500">
-            <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
-          </svg>
-        </div>
-        <h3 className="text-base font-semibold text-slate-800">确认删除用户</h3>
-        <p className="mt-2 text-sm text-slate-500">
-          即将删除用户 <span className="font-medium text-slate-700">「{targetUser.fullName || targetUser.username}」</span>，
-          同时移除该用户的所有角色绑定。此操作不可撤销。
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition">取消</button>
-          <button onClick={handleDelete} disabled={deleting}
-            className="rounded-xl bg-rose-500 px-5 py-2 text-sm text-white hover:bg-rose-600 disabled:opacity-50 transition">
-            {deleting ? '删除中...' : '确认删除'}
-          </button>
-        </div>
-      </div>
+    <Modal open onCancel={onClose} title="确认删除用户" width={480} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" danger onClick={handleDelete} loading={deleting}>确认删除</Button>,
+      ]}>
+      <p className="text-sm text-slate-500">
+        即将删除用户 <span className="font-medium text-slate-700">「{targetUser.fullName || targetUser.username}」</span>，
+        同时移除该用户的所有角色绑定。此操作不可撤销。
+      </p>
     </Modal>
   );
 }
@@ -76,46 +64,35 @@ function AssignRoleModal({ targetUser, roles, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-lg">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-800">分配角色</h2>
-          <p className="text-sm text-slate-500">{targetUser.fullName || targetUser.username}</p>
-        </div>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="px-6 py-5">
-        <p className="mb-3 text-xs text-slate-400">已选 {selected.length} 个角色</p>
-        <div className="grid grid-cols-2 gap-2">
-          {(roles || []).map((role) => {
-            const isOn = selected.includes(role.id);
-            const color = ROLE_COLOR[role.roleCode] || 'from-slate-400 to-slate-500';
-            return (
-              <button key={role.id} type="button" onClick={() => toggle(role.id)}
-                className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${
-                  isOn ? 'border-cyan-300 bg-cyan-50' : 'border-slate-200 bg-white hover:bg-slate-50'
-                }`}>
-                <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${color} text-xs font-bold text-white`}>
-                  {(ROLE_LABEL[role.roleCode] || role.roleName).slice(0, 1)}
-                </div>
-                <div className="min-w-0">
-                  <p className={`truncate text-sm font-medium ${isOn ? 'text-cyan-700' : 'text-slate-700'}`}>
-                    {ROLE_LABEL[role.roleCode] || role.roleName}
-                  </p>
-                  <p className="truncate font-mono text-xs text-slate-400">{role.roleCode}</p>
-                </div>
-                {isOn && <span className="ml-auto text-cyan-500">✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSave} disabled={saving}
-          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white hover:bg-cyan-700 disabled:opacity-50 transition">
-          {saving ? '保存中...' : '保存'}
-        </button>
+    <Modal open onCancel={onClose} title="分配角色" width={640} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSave} loading={saving}>保存</Button>,
+      ]}>
+      <p className="mb-3 text-sm text-slate-500">{targetUser.fullName || targetUser.username}</p>
+      <p className="mb-3 text-xs text-slate-400">已选 {selected.length} 个角色</p>
+      <div className="grid grid-cols-2 gap-2">
+        {(roles || []).map((role) => {
+          const isOn = selected.includes(role.id);
+          const color = ROLE_COLOR[role.roleCode] || 'from-slate-400 to-slate-500';
+          return (
+            <button key={role.id} type="button" onClick={() => toggle(role.id)}
+              className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${
+                isOn ? 'border-cyan-300 bg-cyan-50' : 'border-slate-200 bg-white hover:bg-slate-50'
+              }`}>
+              <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${color} text-xs font-bold text-white`}>
+                {(ROLE_LABEL[role.roleCode] || role.roleName).slice(0, 1)}
+              </div>
+              <div className="min-w-0">
+                <p className={`truncate text-sm font-medium ${isOn ? 'text-cyan-700' : 'text-slate-700'}`}>
+                  {ROLE_LABEL[role.roleCode] || role.roleName}
+                </p>
+                <p className="truncate font-mono text-xs text-slate-400">{role.roleCode}</p>
+              </div>
+              {isOn && <span className="ml-auto text-cyan-500">✓</span>}
+            </button>
+          );
+        })}
       </div>
     </Modal>
   );
@@ -151,12 +128,12 @@ function CreateUserModal({ roles, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-xl">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">新建用户</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-5">
+    <Modal open onCancel={onClose} title="新建用户" width={800} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>创建用户</Button>,
+      ]}>
+      <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           {[
             { label: '用户名 *', key: 'username', placeholder: '登录账号', type: 'text' },
@@ -193,13 +170,6 @@ function CreateUserModal({ roles, onClose, onSuccess }) {
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
       </div>
-      <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white hover:bg-cyan-700 disabled:opacity-50 transition">
-          {submitting ? '创建中...' : '创建用户'}
-        </button>
-      </div>
     </Modal>
   );
 }
@@ -226,15 +196,13 @@ function EditUserModal({ targetUser, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-800">编辑用户</h2>
-          <p className="text-sm text-slate-400 font-mono">{targetUser.username}</p>
-        </div>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-5">
+    <Modal open onCancel={onClose} title="编辑用户" width={560} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSave} loading={saving}>保存</Button>,
+      ]}>
+      <p className="mb-4 text-sm text-slate-400 font-mono">{targetUser.username}</p>
+      <div className="space-y-4">
         <div>
           <label className="mb-1 block text-xs text-slate-500">真实姓名 *</label>
           <input value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
@@ -248,13 +216,6 @@ function EditUserModal({ targetUser, onClose, onSuccess }) {
             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-300" />
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
-      </div>
-      <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSave} disabled={saving}
-          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white hover:bg-cyan-700 disabled:opacity-50 transition">
-          {saving ? '保存中...' : '保存'}
-        </button>
       </div>
     </Modal>
   );
@@ -356,87 +317,66 @@ export default function SystemUsersPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="py-20 text-center text-sm text-slate-400">加载中...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs text-slate-500">
-                <tr>
-                  <th className="px-6 py-3 font-medium">账号</th>
-                  <th className="px-4 py-3 font-medium">姓名</th>
-                  <th className="px-4 py-3 font-medium">所属科室</th>
-                  <th className="px-4 py-3 font-medium">角色</th>
-                  <th className="px-4 py-3 font-medium">状态</th>
-                  <th className="px-4 py-3 font-medium">创建时间</th>
-                  <th className="px-4 py-3 font-medium pr-6">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paged.map((u) => (
-                  <tr key={u.id} className="border-t border-slate-100 transition hover:bg-slate-50/70">
-                    <td className="px-6 py-3 font-mono text-sm text-slate-700">{u.username}</td>
-                    <td className="px-4 py-3 font-medium text-slate-800">{u.fullName || '--'}</td>
-                    <td className="px-4 py-3 text-sm text-slate-500">{u.department || <span className="text-slate-300">--</span>}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {(u.roles || []).map((r) => (
-                          <span key={r.id} className="rounded-full bg-cyan-100 px-2 py-0.5 text-xs text-cyan-700">
-                            {ROLE_LABEL[r.roleCode] || r.roleName}
-                          </span>
-                        ))}
-                        {!(u.roles?.length) && <span className="text-xs text-slate-400">未分配</span>}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        u.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {u.status === 'ACTIVE' ? '启用' : '停用'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-400">{formatDateTime(u.createdAt)}</td>
-                    <td className="px-4 py-3 pr-6">
-                      <div className="flex items-center gap-1.5">
-                        <PermGuard perm="iam.user.assignRole">
-                          <button onClick={() => setAssignTarget(u)}
-                            className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 transition">
-                            分配角色
-                          </button>
-                        </PermGuard>
-                        <PermGuard perm="iam.user.create">
-                          <button onClick={() => setEditTarget(u)}
-                            className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 transition">
-                            编辑
-                          </button>
-                          <button
-                            onClick={() => handleToggleStatus(u)}
-                            disabled={togglingId === u.id}
-                            className={`rounded-lg border px-2.5 py-1 text-xs transition disabled:opacity-50 ${
-                              u.status === 'ACTIVE'
-                                ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100'
-                                : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                            }`}>
-                            {togglingId === u.id ? '...' : (u.status === 'ACTIVE' ? '停用' : '启用')}
-                          </button>
-                          <button onClick={() => setDeleteTarget(u)} title="删除用户"
-                            className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500">
-                            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                              <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
-                            </svg>
-                          </button>
-                        </PermGuard>
-                      </div>
-                    </td>
-                  </tr>
+        <Table
+          columns={[
+            { title: '账号', dataIndex: 'username', key: 'username', render: (v) => <span className="font-mono text-sm text-slate-700">{v}</span> },
+            { title: '姓名', dataIndex: 'fullName', key: 'fullName', render: (v) => <span className="font-medium text-slate-800">{v || '--'}</span> },
+            { title: '所属科室', dataIndex: 'department', key: 'department', render: (v) => v || <span className="text-slate-300">--</span> },
+            { title: '角色', key: 'roles', render: (_, u) => (
+              <div className="flex flex-wrap gap-1">
+                {(u.roles || []).map((r) => (
+                  <span key={r.id} className="rounded-full bg-cyan-100 px-2 py-0.5 text-xs text-cyan-700">
+                    {ROLE_LABEL[r.roleCode] || r.roleName}
+                  </span>
                 ))}
-                {paged.length === 0 && (
-                  <tr><td colSpan={7} className="py-12 text-center text-slate-400">暂无用户数据</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+                {!(u.roles?.length) && <span className="text-xs text-slate-400">未分配</span>}
+              </div>
+            )},
+            { title: '状态', dataIndex: 'status', key: 'status', render: (v) => (
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${v === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                {v === 'ACTIVE' ? '启用' : '停用'}
+              </span>
+            )},
+            { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400">{formatDateTime(v)}</span> },
+            { title: '操作', key: 'actions', render: (_, u) => (
+              <Space size={4}>
+                <PermGuard perm="iam.user.assignRole">
+                  <button onClick={() => setAssignTarget(u)}
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 transition">
+                    分配角色
+                  </button>
+                </PermGuard>
+                <PermGuard perm="iam.user.create">
+                  <button onClick={() => setEditTarget(u)}
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 transition">
+                    编辑
+                  </button>
+                  <button
+                    onClick={() => handleToggleStatus(u)}
+                    disabled={togglingId === u.id}
+                    className={`rounded-lg border px-2.5 py-1 text-xs transition disabled:opacity-50 ${
+                      u.status === 'ACTIVE'
+                        ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100'
+                        : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                    }`}>
+                    {togglingId === u.id ? '...' : (u.status === 'ACTIVE' ? '停用' : '启用')}
+                  </button>
+                  <button onClick={() => setDeleteTarget(u)} title="删除用户"
+                    className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                      <path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3V1.75Zm4.5 0V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75Zm-7.5 4.5a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Zm3.25-.75a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 .75-.75Zm3.25.75a.75.75 0 0 1 1.5 0v6a.75.75 0 0 1-1.5 0v-6Z" fill="currentColor"/>
+                    </svg>
+                  </button>
+                </PermGuard>
+              </Space>
+            )},
+          ]}
+          dataSource={paged}
+          rowKey="id"
+          size="middle"
+          pagination={false}
+          loading={loading}
+        />
 
         <Pager total={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} />
       </section>

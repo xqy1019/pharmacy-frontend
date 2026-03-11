@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import {
   fetchDashboardOverview,
   fetchIntegrationJobs,
+  fetchInventoryTurnover,
   fetchPrescriptions,
   fetchProcurementOverview,
-  fetchTransfersOverview
+  fetchTransfersOverview,
 } from '../api/pharmacy';
+import AiAnalysisPanel from '../components/AiAnalysisPanel';
 import ChartCard from '../components/ChartCard';
 import StatCard from '../components/StatCard';
 import { useAsyncData } from '../hooks/useAsyncData';
@@ -281,6 +283,83 @@ function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* ── AI 运营洞察 ── */}
+      <AiAnalysisPanel
+        context={{ page: '仪表盘' }}
+        actions={[
+          {
+            key: 'daily_report',
+            icon: '📋',
+            label: '今日运营简报',
+            getPrompt: () => {
+              const kpis = [
+                `- 库存总量：${formatNumber(overview.totalInventory)} 种`,
+                `- 库存预警：${overview.inventoryWarningCount} 条（低库存 ${overview.lowStock} 种，近效期 ${overview.nearExpiry} 批）`,
+                `- 待审处方：${overview.pendingPrescriptions} 张`,
+                `- 今日销售：¥${formatNumber(overview.todaySales)}`,
+                `- 采购达成率：${formatPercent(overview.procurementAchieveRate, 2)}`,
+                `- 待到货采购单：${data?.procurementOverview?.dueArrivals || 0} 单`,
+                `- 调拨待处理：${data?.transferOverview?.pending || 0} 单`,
+              ].join('\n');
+              const expiryTop = (overview.nearExpiryTop10 || []).slice(0, 5)
+                .map((i) => `- ${i.drugName}（批号 ${i.batchNo}）：效期 ${formatDate(i.expiryDate)}，可售 ${formatNumber(i.availableQty)}`)
+                .join('\n') || '  暂无';
+              return `你是专业药房运营分析师。请根据以下今日药房运营数据，生成一份简洁的运营简报：
+
+## 今日核心 KPI
+${kpis}
+
+## 近效期 Top5
+${expiryTop}
+
+请：
+1. 用 2~3 句话评价今日整体运营状态（好/一般/需关注）
+2. 指出 2~3 个最需要优先处理的问题，并说明原因
+3. 给出 1~2 条明确的行动建议
+
+语言简洁专业，使用 Markdown 格式，重点加粗。`;
+            },
+          },
+          {
+            key: 'risk',
+            icon: '⚠️',
+            label: '风险综合评估',
+            getPrompt: async () => {
+              const turnover = await fetchInventoryTurnover().catch(() => []);
+              const lowTurnoverLines = (turnover || []).slice(0, 5)
+                .map((t) => `- ${t.drugName || t.name || JSON.stringify(t)}`)
+                .join('\n') || '  暂无低周转数据';
+              const expiryLines = (overview.nearExpiryTop10 || []).slice(0, 5)
+                .map((i) => `- ${i.drugName}：距效期 ${Math.ceil((new Date(i.expiryDate) - new Date()) / 86400000)} 天，可售 ${formatNumber(i.availableQty)}`)
+                .join('\n') || '  暂无';
+              return `你是专业药房风险管理药师。请对以下药房数据进行综合风险评估：
+
+## 库存风险指标
+- 低库存品种：${overview.lowStock} 种
+- 近效期批次：${overview.nearExpiry} 批
+- 库存预警总数：${overview.inventoryWarningCount} 条
+
+## 效期风险 Top5
+${expiryLines}
+
+## 低周转品种 Top5（积压风险）
+${lowTurnoverLines}
+
+## 业务风险
+- 待审处方：${overview.pendingPrescriptions} 张（含高风险处方）
+- 采购达成率：${formatPercent(overview.procurementAchieveRate, 2)}
+
+请：
+1. 从库存安全、效期管理、业务连续性三个维度给出综合风险评级（🔴高/🟡中/🟢低）
+2. 识别出当前最突出的 2~3 个风险点，说明潜在影响
+3. 给出针对每个风险点的改善建议
+
+结构清晰，使用 Markdown 格式。`;
+            },
+          },
+        ]}
+      />
 
       {/* ── 第三行：库存分布 + 低周转 + 近效期列表 ── */}
       <section className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr]">

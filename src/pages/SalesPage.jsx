@@ -11,7 +11,7 @@ import {
   refundSaleOrder,
   rejectReturn,
 } from '../api/pharmacy';
-import Modal from '../components/Modal';
+import { Button, Modal, Space, Table } from 'antd';
 import Pager from '../components/Pager';
 import SummaryCard from '../components/SummaryCard';
 import { useToast } from '../context/ToastContext';
@@ -108,14 +108,76 @@ function CreateOrderModal({ onClose, onSuccess }) {
     }
   }
 
-  return (
-    <Modal onClose={onClose} maxWidth="max-w-2xl">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">新建销售订单</h2>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
-      </div>
+  const itemColumns = [
+    {
+      title: '选择批次 *', dataIndex: 'batchId', key: 'batchId', width: 260,
+      render: (_, item) => {
+        const idx = items.indexOf(item);
+        return (
+          <div>
+            <select value={item.batchId} onChange={(e) => selectBatch(idx, e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-cyan-300">
+              <option value="">-- 选择药品批次 --</option>
+              {activeBatches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.drugName}｜{b.batchNo}｜可售:{b.availableQty ?? b.remainingQty}
+                </option>
+              ))}
+            </select>
+            {item.spec && <p className="mt-0.5 pl-1 text-xs text-slate-400">{item.spec}</p>}
+          </div>
+        );
+      },
+    },
+    {
+      title: '数量', dataIndex: 'quantity', key: 'quantity', width: 80,
+      render: (_, item) => {
+        const idx = items.indexOf(item);
+        return (
+          <input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-cyan-300" />
+        );
+      },
+    },
+    {
+      title: '单价(元)', dataIndex: 'unitPrice', key: 'unitPrice', width: 100,
+      render: (_, item) => {
+        const idx = items.indexOf(item);
+        return (
+          <input type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-cyan-300" />
+        );
+      },
+    },
+    {
+      title: '小计', key: 'subtotal', width: 80,
+      render: (_, item) => <span className="text-xs text-slate-600">¥{(Number(item.quantity || 0) * Number(item.unitPrice || 0)).toFixed(2)}</span>,
+    },
+    {
+      title: '', key: 'actions', width: 40,
+      render: (_, item) => {
+        const idx = items.indexOf(item);
+        return items.length > 1 ? (
+          <button onClick={() => setItems((p) => p.filter((_, i) => i !== idx))}
+            className="text-rose-400 hover:text-rose-600 text-xs">✕</button>
+        ) : null;
+      },
+    },
+  ];
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-6 py-4">
+  return (
+    <Modal
+      open
+      onCancel={onClose}
+      title="新建销售订单"
+      width={896}
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSave} loading={submitting}>创建订单</Button>,
+      ]}
+      destroyOnClose
+    >
+      <div className="space-y-5">
         <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="mb-1 block text-xs text-slate-500">患者姓名 *</label>
@@ -145,68 +207,19 @@ function CreateOrderModal({ onClose, onSuccess }) {
               + 添加行
             </button>
           </div>
-          <div className="overflow-hidden rounded-xl border border-slate-200">
-            <table className="min-w-full text-xs">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium min-w-[200px]">选择批次 *</th>
-                  <th className="px-3 py-2 text-left font-medium w-20">数量</th>
-                  <th className="px-3 py-2 text-left font-medium w-24">单价(元)</th>
-                  <th className="px-3 py-2 text-left font-medium w-20">小计</th>
-                  <th className="w-8"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, idx) => (
-                  <tr key={idx} className="border-t border-slate-100">
-                    <td className="px-3 py-2">
-                      <select value={item.batchId} onChange={(e) => selectBatch(idx, e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-300">
-                        <option value="">-- 选择药品批次 --</option>
-                        {activeBatches.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.drugName}｜{b.batchNo}｜可售:{b.availableQty ?? b.remainingQty}
-                          </option>
-                        ))}
-                      </select>
-                      {item.spec && <p className="mt-0.5 pl-1 text-slate-400">{item.spec}</p>}
-                    </td>
-                    <td className="px-3 py-2">
-                      <input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-300" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-300" />
-                    </td>
-                    <td className="px-3 py-2 text-slate-600">
-                      ¥{(Number(item.quantity || 0) * Number(item.unitPrice || 0)).toFixed(2)}
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      {items.length > 1 && (
-                        <button onClick={() => setItems((p) => p.filter((_, i) => i !== idx))}
-                          className="text-rose-400 hover:text-rose-600">✕</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            columns={itemColumns}
+            dataSource={items}
+            rowKey={(_, idx) => idx}
+            size="small"
+            pagination={false}
+          />
           <div className="mt-2 text-right text-sm font-semibold text-slate-700">
             合计：¥{total.toFixed(2)}
           </div>
         </div>
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
-      </div>
-
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSave} disabled={submitting}
-          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white transition hover:bg-cyan-700 disabled:opacity-50">
-          {submitting ? '创建中...' : '创建订单'}
-        </button>
       </div>
     </Modal>
   );
@@ -233,12 +246,21 @@ function PayModal({ order, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-sm">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">收款确认</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-4">
+    <Modal
+      open
+      onCancel={onClose}
+      title="收款确认"
+      width={480}
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handlePay} loading={submitting}
+          className="!bg-emerald-600 !border-emerald-600 hover:!bg-emerald-700">
+          {submitting ? '处理中...' : `确认收款 ¥${formatNumber(amount)}`}
+        </Button>,
+      ]}
+      destroyOnClose
+    >
+      <div className="space-y-4">
         <div className="rounded-xl bg-slate-50 p-4 text-sm">
           <div className="mb-2 flex justify-between text-slate-500">
             <span>订单号</span><span className="font-mono font-medium text-slate-800">{order.orderNo}</span>
@@ -269,13 +291,6 @@ function PayModal({ order, onClose, onSuccess }) {
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
       </div>
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handlePay} disabled={submitting}
-          className="rounded-xl bg-emerald-600 px-5 py-2 text-sm text-white transition hover:bg-emerald-700 disabled:opacity-50">
-          {submitting ? '处理中...' : `确认收款 ¥${formatNumber(amount)}`}
-        </button>
-      </div>
     </Modal>
   );
 }
@@ -300,12 +315,18 @@ function RefundModal({ order, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">退款申请</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-4">
+    <Modal
+      open
+      onCancel={onClose}
+      title="退款申请"
+      width={560}
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" danger onClick={handleRefund} loading={submitting}>确认退款</Button>,
+      ]}
+      destroyOnClose
+    >
+      <div className="space-y-4">
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-700">
           退款后库存将自动回收，订单状态变更为「已退款」，此操作不可撤销。
         </div>
@@ -324,13 +345,6 @@ function RefundModal({ order, onClose, onSuccess }) {
             className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-rose-300" />
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
-      </div>
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleRefund} disabled={submitting}
-          className="rounded-xl bg-rose-500 px-5 py-2 text-sm text-white transition hover:bg-rose-600 disabled:opacity-50">
-          {submitting ? '处理中...' : '确认退款'}
-        </button>
       </div>
     </Modal>
   );
@@ -364,12 +378,20 @@ function ReviewReturnModal({ returnRecord, onClose, onSuccess }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">退货审核</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-4">
+    <Modal
+      open
+      onCancel={onClose}
+      title="退货审核"
+      width={560}
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" danger={!pass} onClick={handleSubmit} loading={submitting}>
+          {pass ? '确认通过' : '确认驳回'}
+        </Button>,
+      ]}
+      destroyOnClose
+    >
+      <div className="space-y-4">
         <div className="rounded-xl bg-slate-50 p-4 text-sm space-y-2">
           <div className="flex justify-between text-slate-500">
             <span>退货单号</span><span className="font-mono font-medium text-slate-800">{returnRecord.returnNo || '--'}</span>
@@ -404,13 +426,6 @@ function ReviewReturnModal({ returnRecord, onClose, onSuccess }) {
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
       </div>
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className={`rounded-xl px-5 py-2 text-sm text-white transition disabled:opacity-50 ${pass ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-500 hover:bg-rose-600'}`}>
-          {submitting ? '提交中...' : (pass ? '确认通过' : '确认驳回')}
-        </button>
-      </div>
     </Modal>
   );
 }
@@ -437,59 +452,51 @@ function TraceModal({ onClose }) {
     }
   }
 
+  const traceColumns = [
+    { title: '追溯码', dataIndex: 'traceCode', key: 'traceCode', render: (v) => <span className="font-mono text-slate-600">{v}</span> },
+    { title: '药品', dataIndex: 'drugName', key: 'drugName', render: (v) => <span className="font-medium text-slate-700">{v}</span> },
+    { title: '批号', dataIndex: 'batchNo', key: 'batchNo', render: (v) => <span className="text-slate-500">{v || '--'}</span> },
+    { title: '状态', key: 'status', render: (_, r) => <span className="text-slate-500">{r.status || r.action || '--'}</span> },
+    { title: '时间', key: 'time', render: (_, r) => <span className="text-slate-400">{formatDateTime(r.createdAt || r.actionAt)}</span> },
+  ];
+
+  const traceData = result ? (Array.isArray(result) ? result : [result]) : [];
+
   return (
-    <Modal onClose={onClose} maxWidth="max-w-lg">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">追溯码查询</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-4">
+    <Modal
+      open
+      onCancel={onClose}
+      title="追溯码查询"
+      width={640}
+      footer={[
+        <Button key="close" onClick={onClose}>关闭</Button>,
+      ]}
+      destroyOnClose
+    >
+      <div className="space-y-4">
         <div className="flex gap-2">
           <input value={traceCode} onChange={(e) => setTraceCode(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleQuery(); }}
             placeholder="输入追溯码进行查询..."
             className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-cyan-300" />
-          <button onClick={handleQuery} disabled={querying}
-            className="rounded-xl bg-cyan-600 px-4 py-2 text-sm text-white transition hover:bg-cyan-700 disabled:opacity-50">
+          <Button type="primary" onClick={handleQuery} loading={querying}>
             {querying ? '查询中...' : '查询'}
-          </button>
+          </Button>
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
         {result && (
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            {Array.isArray(result) && result.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-400">未找到该追溯码的记录</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-xs">
-                  <thead className="bg-slate-50 text-slate-500">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-medium">追溯码</th>
-                      <th className="px-3 py-2 text-left font-medium">药品</th>
-                      <th className="px-3 py-2 text-left font-medium">批号</th>
-                      <th className="px-3 py-2 text-left font-medium">状态</th>
-                      <th className="px-3 py-2 text-left font-medium">时间</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(Array.isArray(result) ? result : [result]).map((r, i) => (
-                      <tr key={i} className="border-t border-slate-100">
-                        <td className="px-3 py-2 font-mono text-slate-600">{r.traceCode}</td>
-                        <td className="px-3 py-2 font-medium text-slate-700">{r.drugName}</td>
-                        <td className="px-3 py-2 text-slate-500">{r.batchNo || '--'}</td>
-                        <td className="px-3 py-2 text-slate-500">{r.status || r.action || '--'}</td>
-                        <td className="px-3 py-2 text-slate-400">{formatDateTime(r.createdAt || r.actionAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          traceData.length === 0 ? (
+            <p className="py-8 text-center text-sm text-slate-400">未找到该追溯码的记录</p>
+          ) : (
+            <Table
+              columns={traceColumns}
+              dataSource={traceData}
+              rowKey={(_, i) => i}
+              size="small"
+              pagination={false}
+            />
+          )
         )}
-      </div>
-      <div className="flex justify-end border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">关闭</button>
       </div>
     </Modal>
   );
@@ -575,9 +582,12 @@ export default function SalesPage() {
       {/* 统计卡 */}
       <section className="grid gap-4 md:grid-cols-3">
         {[
-          { label: '订单总数', value: formatNumber(stats.total), detail: `已支付 ${formatNumber(stats.paid)} 单`, accent: toneAccents[0] },
-          { label: '累计营业额', value: `¥${formatNumber(stats.totalAmount)}`, detail: '全部已支付订单', accent: toneAccents[1] },
-          { label: '今日营业额', value: `¥${formatNumber(stats.todayAmount)}`, detail: '今日已支付金额', accent: toneAccents[2] },
+          { label: '订单总数', value: formatNumber(stats.total), detail: `已支付 ${formatNumber(stats.paid)} 单`, accent: toneAccents[0],
+            icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> },
+          { label: '累计营业额', value: `¥${formatNumber(stats.totalAmount)}`, detail: '全部已支付订单', accent: toneAccents[1],
+            icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
+          { label: '今日营业额', value: `¥${formatNumber(stats.todayAmount)}`, detail: '今日已支付金额', accent: toneAccents[2],
+            icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> },
         ].map((item) => (
           <SummaryCard key={item.label} {...item} />
         ))}
@@ -627,109 +637,77 @@ export default function SalesPage() {
         </div>
 
         {/* 表格 */}
-        {loading ? (
-          <div className="py-16 text-center text-slate-400">加载中...</div>
+        {tab === 'orders' ? (
+          <Table
+            columns={[
+              { title: '订单号', dataIndex: 'orderNo', key: 'orderNo', render: (v) => <span className="font-mono text-xs text-slate-500">{v}</span> },
+              { title: '患者', dataIndex: 'patientName', key: 'patientName', render: (v) => <span className="font-medium">{v}</span> },
+              { title: '药品数', key: 'itemCount', align: 'center', render: (_, r) => r.items?.length ?? '--' },
+              { title: '金额', key: 'amount', render: (_, r) => <span className="font-semibold text-slate-800">¥{formatNumber(r.totalAmount ?? r.payableAmount)}</span> },
+              { title: '支付方式', key: 'payMethod', render: (_, r) => <span className="text-slate-500">{PAY_METHOD[r.payments?.[0]?.paymentMethod] || '--'}</span> },
+              { title: '状态', dataIndex: 'status', key: 'status', render: (v) => <Badge status={v} map={ORDER_STATUS} /> },
+              { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400">{formatDateTime(v)}</span> },
+              {
+                title: '操作', key: 'actions',
+                render: (_, order) => (
+                  <Space>
+                    {order.status === 'PENDING' && (
+                      <>
+                        <button onClick={() => setPayOrder(order)}
+                          className="rounded-lg bg-emerald-600 px-3 py-1 text-xs text-white transition hover:bg-emerald-700">
+                          收款
+                        </button>
+                        <button disabled={cancellingId === order.id}
+                          onClick={() => handleCancel(order)}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
+                          取消
+                        </button>
+                      </>
+                    )}
+                    {order.status === 'PAID' && (
+                      <button onClick={() => setRefundOrder(order)}
+                        className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1 text-xs text-rose-700 transition hover:bg-rose-100">
+                        退款
+                      </button>
+                    )}
+                  </Space>
+                ),
+              },
+            ]}
+            dataSource={pagedRows}
+            rowKey="id"
+            size="middle"
+            pagination={false}
+            loading={loading}
+            locale={{ emptyText: '暂无销售订单' }}
+          />
         ) : (
-          <div className="overflow-x-auto">
-            {tab === 'orders' ? (
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-500">
-                  <tr>
-                    <th className="px-5 py-3 font-medium pl-6">订单号</th>
-                    <th className="px-5 py-3 font-medium">患者</th>
-                    <th className="px-5 py-3 font-medium">药品数</th>
-                    <th className="px-5 py-3 font-medium">金额</th>
-                    <th className="px-5 py-3 font-medium">支付方式</th>
-                    <th className="px-5 py-3 font-medium">状态</th>
-                    <th className="px-5 py-3 font-medium">创建时间</th>
-                    <th className="px-5 py-3 font-medium pr-6">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedRows.map((order) => (
-                    <tr key={order.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                      <td className="px-5 py-3 pl-6 font-mono text-xs text-slate-500">{order.orderNo}</td>
-                      <td className="px-5 py-3 font-medium">{order.patientName}</td>
-                      <td className="px-5 py-3 text-center">{order.items?.length ?? '--'}</td>
-                      <td className="px-5 py-3 font-semibold text-slate-800">¥{formatNumber(order.totalAmount ?? order.payableAmount)}</td>
-                      <td className="px-5 py-3 text-slate-500">{PAY_METHOD[order.payments?.[0]?.paymentMethod] || '--'}</td>
-                      <td className="px-5 py-3"><Badge status={order.status} map={ORDER_STATUS} /></td>
-                      <td className="px-5 py-3 text-xs text-slate-400">{formatDateTime(order.createdAt)}</td>
-                      <td className="px-5 py-3 pr-6">
-                        <div className="flex items-center gap-2">
-                          {order.status === 'PENDING' && (
-                            <>
-                              <button onClick={() => setPayOrder(order)}
-                                className="rounded-lg bg-emerald-600 px-3 py-1 text-xs text-white transition hover:bg-emerald-700">
-                                收款
-                              </button>
-                              <button disabled={cancellingId === order.id}
-                                onClick={() => handleCancel(order)}
-                                className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
-                                取消
-                              </button>
-                            </>
-                          )}
-                          {order.status === 'PAID' && (
-                            <button onClick={() => setRefundOrder(order)}
-                              className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1 text-xs text-rose-700 transition hover:bg-rose-100">
-                              退款
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {pagedRows.length === 0 && (
-                    <tr className="border-t border-slate-100">
-                      <td colSpan={8} className="px-5 py-10 text-center text-slate-500">暂无销售订单</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            ) : (
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-500">
-                  <tr>
-                    <th className="px-5 py-3 font-medium pl-6">退货单号</th>
-                    <th className="px-5 py-3 font-medium">原订单号</th>
-                    <th className="px-5 py-3 font-medium">患者</th>
-                    <th className="px-5 py-3 font-medium">退款金额</th>
-                    <th className="px-5 py-3 font-medium">退货原因</th>
-                    <th className="px-5 py-3 font-medium">状态</th>
-                    <th className="px-5 py-3 font-medium">时间</th>
-                    <th className="px-5 py-3 font-medium pr-6">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedRows.map((r) => (
-                    <tr key={r.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                      <td className="px-5 py-3 pl-6 font-mono text-xs text-slate-500">{r.returnNo || '--'}</td>
-                      <td className="px-5 py-3 font-mono text-xs text-slate-500">{r.originalOrderNo || '--'}</td>
-                      <td className="px-5 py-3 font-medium">{r.patientName || '--'}</td>
-                      <td className="px-5 py-3 font-semibold text-rose-700">¥{formatNumber(r.refundAmount || r.totalAmount)}</td>
-                      <td className="px-5 py-3 text-slate-500">{r.returnReason || '--'}</td>
-                      <td className="px-5 py-3"><Badge status={r.status} map={RETURN_STATUS} /></td>
-                      <td className="px-5 py-3 text-xs text-slate-400">{formatDateTime(r.createdAt)}</td>
-                      <td className="px-5 py-3 pr-6">
-                        {r.status === 'PENDING' && (
-                          <button onClick={() => setReviewReturn(r)}
-                            className="rounded-lg bg-amber-500 px-3 py-1 text-xs text-white transition hover:bg-amber-600">
-                            审核
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {pagedRows.length === 0 && (
-                    <tr className="border-t border-slate-100">
-                      <td colSpan={7} className="px-5 py-10 text-center text-slate-500">暂无退货记录</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            )}
-          </div>
+          <Table
+            columns={[
+              { title: '退货单号', dataIndex: 'returnNo', key: 'returnNo', render: (v) => <span className="font-mono text-xs text-slate-500">{v || '--'}</span> },
+              { title: '原订单号', dataIndex: 'originalOrderNo', key: 'originalOrderNo', render: (v) => <span className="font-mono text-xs text-slate-500">{v || '--'}</span> },
+              { title: '患者', dataIndex: 'patientName', key: 'patientName', render: (v) => <span className="font-medium">{v || '--'}</span> },
+              { title: '退款金额', key: 'refundAmount', render: (_, r) => <span className="font-semibold text-rose-700">¥{formatNumber(r.refundAmount || r.totalAmount)}</span> },
+              { title: '退货原因', dataIndex: 'returnReason', key: 'returnReason', render: (v) => <span className="text-slate-500">{v || '--'}</span> },
+              { title: '状态', dataIndex: 'status', key: 'status', render: (v) => <Badge status={v} map={RETURN_STATUS} /> },
+              { title: '时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400">{formatDateTime(v)}</span> },
+              {
+                title: '操作', key: 'actions',
+                render: (_, r) => r.status === 'PENDING' ? (
+                  <button onClick={() => setReviewReturn(r)}
+                    className="rounded-lg bg-amber-500 px-3 py-1 text-xs text-white transition hover:bg-amber-600">
+                    审核
+                  </button>
+                ) : null,
+              },
+            ]}
+            dataSource={pagedRows}
+            rowKey="id"
+            size="middle"
+            pagination={false}
+            loading={loading}
+            locale={{ emptyText: '暂无退货记录' }}
+          />
         )}
 
         <Pager

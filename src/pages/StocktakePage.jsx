@@ -5,7 +5,8 @@ import {
   fetchStocktakes,
   rejectStocktake,
 } from '../api/pharmacy';
-import Modal from '../components/Modal';
+import { Button, Modal, Space, Table } from 'antd';
+import AiAnalysisPanel from '../components/AiAnalysisPanel';
 import Pager from '../components/Pager';
 import { DEFAULT_WAREHOUSE_ID } from '../config/warehouse';
 import { useToast } from '../context/ToastContext';
@@ -70,13 +71,12 @@ function CreateStocktakeModal({ onClose, onSuccess, initialData }) {
   }
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-lg">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">新建盘点记录</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-
-      <div className="space-y-4 px-6 py-4">
+    <Modal open onCancel={onClose} title="新建盘点记录" width={640} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}>提交盘点</Button>,
+      ]}>
+      <div className="space-y-4 py-2">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1 block text-xs text-slate-500">药品名称 *</label>
@@ -132,14 +132,6 @@ function CreateStocktakeModal({ onClose, onSuccess, initialData }) {
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
       </div>
-
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className="rounded-xl bg-cyan-600 px-5 py-2 text-sm text-white transition hover:bg-cyan-700 disabled:opacity-50">
-          {submitting ? '提交中...' : '提交盘点'}
-        </button>
-      </div>
     </Modal>
   );
 }
@@ -171,12 +163,15 @@ function ReviewModal({ record, onClose, onSuccess }) {
   const diff = Number(record.actualQty || 0) - Number(record.systemQty || 0);
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">盘点审批</h2>
-        <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      <div className="space-y-4 px-6 py-4">
+    <Modal open onCancel={onClose} title="盘点审批" width={560} destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="ok" type="primary" onClick={handleSubmit} loading={submitting}
+          danger={!pass}>
+          {pass ? '确认通过' : '确认驳回'}
+        </Button>,
+      ]}>
+      <div className="space-y-4 py-2">
         <div className="rounded-xl bg-slate-50 p-4 text-sm space-y-2">
           <div className="flex justify-between text-slate-500"><span>药品</span><span className="font-medium text-slate-800">{record.drugName}</span></div>
           <div className="flex justify-between text-slate-500"><span>账面数量</span><span className="font-medium text-slate-800">{record.systemQty}</span></div>
@@ -208,13 +203,6 @@ function ReviewModal({ record, onClose, onSuccess }) {
             className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-cyan-300" />
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
-      </div>
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">取消</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className={`rounded-xl px-5 py-2 text-sm text-white transition disabled:opacity-50 ${pass ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-500 hover:bg-rose-600'}`}>
-          {submitting ? '提交中...' : (pass ? '确认通过' : '确认驳回')}
-        </button>
       </div>
     </Modal>
   );
@@ -262,6 +250,71 @@ export default function StocktakePage() {
     return filtered.slice(start, start + pageSize);
   }, [filtered, page, pageSize]);
 
+  // ── AI 盘点分析 actions ────────────────────────────────────────────────
+  const aiActions = useMemo(() => {
+    if (!records?.length) return [];
+    return [
+      {
+        key: 'diff_analysis',
+        icon: '🔍',
+        label: '差异原因分析',
+        getPrompt: () => {
+          const diffItems = records
+            .filter((r) => r.type === 'PROFIT' || r.type === 'LOSS')
+            .slice(0, 20)
+            .map((r) => {
+              const diff = (r.actualQty || 0) - (r.bookQty || 0);
+              return `- ${r.drugName}（批号 ${r.batchNo || '--'}）：账面 ${r.bookQty}，实盘 ${r.actualQty}，差异 ${diff > 0 ? '+' : ''}${diff}，原因：${r.reason || '未填写'}，状态：${r.status === 'APPROVED' ? '已审批' : r.status === 'REJECTED' ? '已驳回' : '待审批'}`;
+            })
+            .join('\n');
+
+          const summary = `盘盈 ${stats.profit} 条，盘亏 ${stats.loss} 条，待审 ${stats.pending} 条`;
+
+          return `你是专业药房质量管理药师。以下是近期药房盘点差异记录（共 ${records.length} 条，${summary}）：
+
+${diffItems || '（暂无差异记录）'}
+
+请：
+1. 分析差异的整体规律（系统性偏差 or 随机误差）
+2. 识别可能的原因类型：
+   - 操作失误（出入库未及时记账）
+   - 物理损耗（破损/挥发/过期销毁）
+   - 盘点误差（计量单位/包装换算错误）
+   - 异常风险（需关注的持续性盘亏品种）
+3. 对待审批记录给出审批建议（哪些可直接通过，哪些需要复盘核查）
+4. 给出改善账实一致性的管理建议
+
+结构清晰，使用 Markdown 格式。`;
+        },
+      },
+      {
+        key: 'pending_review',
+        icon: '⚖️',
+        label: '待审批建议',
+        getPrompt: () => {
+          const pending = records.filter((r) => r.status === 'PENDING');
+          if (!pending.length) return '当前没有待审批的盘点记录，所有盘点差异已处理完毕。';
+          const lines = pending
+            .map((r) => {
+              const diff = (r.actualQty || 0) - (r.bookQty || 0);
+              const diffPct = r.bookQty ? ((Math.abs(diff) / r.bookQty) * 100).toFixed(1) : '--';
+              return `- ${r.drugName}：差异 ${diff > 0 ? '+' : ''}${diff}（${diffPct}%），原因：${r.reason || '未填写'}`;
+            })
+            .join('\n');
+          return `你是药房盘点审核药师。以下是 ${pending.length} 条待审批盘点差异，请逐条给出审批建议：
+
+${lines}
+
+对每条记录，请给出：
+- 建议操作：✅ 建议通过 / ⚠️ 建议驳回重查 / ❓ 需要补充说明
+- 判断依据（原因是否充分、差异比例是否合理）
+
+最后给出整体审批风险评估。`;
+        },
+      },
+    ];
+  }, [records, stats]);
+
   return (
     <div className="space-y-5">
       {/* 统计卡 */}
@@ -279,6 +332,11 @@ export default function StocktakePage() {
           </article>
         ))}
       </section>
+
+      {/* AI 盘点差异分析 */}
+      {aiActions.length > 0 && (
+        <AiAnalysisPanel actions={aiActions} context={{ page: '盘点管理' }} />
+      )}
 
       {/* 主工作区 */}
       <section className="rounded-2xl border border-white bg-white shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
@@ -306,70 +364,60 @@ export default function StocktakePage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="py-16 text-center text-slate-400">加载中...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-5 py-3 font-medium pl-6">药品名称</th>
-                  <th className="px-5 py-3 font-medium">批号</th>
-                  <th className="px-5 py-3 font-medium">账面数量</th>
-                  <th className="px-5 py-3 font-medium">实盘数量</th>
-                  <th className="px-5 py-3 font-medium">差异</th>
-                  <th className="px-5 py-3 font-medium">类型</th>
-                  <th className="px-5 py-3 font-medium">状态</th>
-                  <th className="px-5 py-3 font-medium">原因</th>
-                  <th className="px-5 py-3 font-medium">时间</th>
-                  <th className="px-5 py-3 font-medium pr-6">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedRows.map((r) => {
-                  const diff = Number(r.actualQty || 0) - Number(r.systemQty || 0);
-                  const typeCfg = TYPE_MAP[r.type] || { label: r.type, color: 'text-slate-600' };
-                  return (
-                    <tr key={r.id} className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/70">
-                      <td className="px-5 py-3 pl-6 font-medium">{r.drugName}</td>
-                      <td className="px-5 py-3 font-mono text-xs text-slate-500">{r.batchNo || '--'}</td>
-                      <td className="px-5 py-3">{formatNumber(r.systemQty)}</td>
-                      <td className="px-5 py-3">{formatNumber(r.actualQty)}</td>
-                      <td className="px-5 py-3">
-                        <span className={diff > 0 ? 'font-semibold text-emerald-700' : diff < 0 ? 'font-semibold text-rose-700' : 'text-slate-500'}>
-                          {diff > 0 ? '+' : ''}{diff}
-                        </span>
-                      </td>
-                      <td className={`px-5 py-3 text-xs ${typeCfg.color}`}>{typeCfg.label}</td>
-                      <td className="px-5 py-3"><Badge status={r.status} /></td>
-                      <td className="px-5 py-3 text-xs text-slate-400">{r.reason || r.reasonCategory || '--'}</td>
-                      <td className="px-5 py-3 text-xs text-slate-400">{formatDateTime(r.createdAt)}</td>
-                      <td className="px-5 py-3 pr-6">
-                        {r.status === 'PENDING' && (
-                          <button onClick={() => setReviewRecord(r)}
-                            className="rounded-lg bg-amber-500 px-3 py-1 text-xs text-white transition hover:bg-amber-600">
-                            审批
-                          </button>
-                        )}
-                        {r.status === 'REJECTED' && (
-                          <button onClick={() => setResubmitRecord(r)}
-                            className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs text-cyan-700 transition hover:bg-cyan-100">
-                            重新提交
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {pagedRows.length === 0 && (
-                  <tr className="border-t border-slate-100">
-                    <td colSpan={10} className="px-5 py-10 text-center text-slate-500">暂无盘点记录</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Table
+          loading={loading}
+          columns={[
+            { title: '药品名称', dataIndex: 'drugName', key: 'drugName', render: (v) => <span className="font-medium">{v}</span> },
+            { title: '批号', dataIndex: 'batchNo', key: 'batchNo', render: (v) => <span className="font-mono text-xs text-slate-500">{v || '--'}</span> },
+            { title: '账面数量', dataIndex: 'systemQty', key: 'systemQty', render: (v) => formatNumber(v) },
+            { title: '实盘数量', dataIndex: 'actualQty', key: 'actualQty', render: (v) => formatNumber(v) },
+            {
+              title: '差异', key: 'diff',
+              render: (_, r) => {
+                const diff = Number(r.actualQty || 0) - Number(r.systemQty || 0);
+                return (
+                  <span className={diff > 0 ? 'font-semibold text-emerald-700' : diff < 0 ? 'font-semibold text-rose-700' : 'text-slate-500'}>
+                    {diff > 0 ? '+' : ''}{diff}
+                  </span>
+                );
+              },
+            },
+            {
+              title: '类型', dataIndex: 'type', key: 'type',
+              render: (v) => {
+                const cfg = TYPE_MAP[v] || { label: v, color: 'text-slate-600' };
+                return <span className={`text-xs ${cfg.color}`}>{cfg.label}</span>;
+              },
+            },
+            { title: '状态', dataIndex: 'status', key: 'status', render: (v) => <Badge status={v} /> },
+            { title: '原因', key: 'reason', render: (_, r) => <span className="text-xs text-slate-400">{r.reason || r.reasonCategory || '--'}</span> },
+            { title: '时间', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span className="text-xs text-slate-400">{formatDateTime(v)}</span> },
+            {
+              title: '操作', key: 'actions',
+              render: (_, r) => (
+                <Space>
+                  {r.status === 'PENDING' && (
+                    <button onClick={() => setReviewRecord(r)}
+                      className="rounded-lg bg-amber-500 px-3 py-1 text-xs text-white transition hover:bg-amber-600">
+                      审批
+                    </button>
+                  )}
+                  {r.status === 'REJECTED' && (
+                    <button onClick={() => setResubmitRecord(r)}
+                      className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs text-cyan-700 transition hover:bg-cyan-100">
+                      重新提交
+                    </button>
+                  )}
+                </Space>
+              ),
+            },
+          ]}
+          dataSource={pagedRows}
+          rowKey="id"
+          size="middle"
+          pagination={false}
+          locale={{ emptyText: '暂无盘点记录' }}
+        />
 
         <Pager total={filtered.length} page={page} pageSize={pageSize}
           onPageChange={setPage}

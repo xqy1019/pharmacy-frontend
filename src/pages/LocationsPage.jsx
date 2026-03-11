@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Table } from 'antd';
 import { fetchInventoryLocations } from '../api/pharmacy';
 import { useAsyncData } from '../hooks/useAsyncData';
 import { formatNumber } from '../utils/formatters';
@@ -182,38 +183,23 @@ function LocationsPage() {
         </div>
 
         <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  {['货位编码', '货位名称', '分区', '货架', '仓库', '状态'].map((col) => (
-                    <th key={col} className="px-5 py-3 font-medium first:pl-6 last:pr-6">{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pagedRows.map((item) => (
-                  <tr key={item.id} className="border-t border-slate-100 text-slate-700 hover:bg-slate-50/70">
-                    <td className="px-5 py-3 pl-6 font-mono text-slate-800">{item.locationCode}</td>
-                    <td className="px-5 py-3">{item.locationName}</td>
-                    <td className="px-5 py-3">{item.zoneName}</td>
-                    <td className="px-5 py-3">{item.shelfName}</td>
-                    <td className="px-5 py-3">{item.storeName}</td>
-                    <td className="px-5 py-3 pr-6">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(statusTone(item.statusLabel))}`}>
-                        {item.statusLabel}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {pagedRows.length === 0 && (
-                  <tr className="border-t border-slate-100">
-                    <td colSpan={6} className="px-5 py-10 text-center text-slate-500">暂无货位数据</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            columns={[
+              { title: '货位编码', dataIndex: 'locationCode', key: 'locationCode', render: (v) => <span className="font-mono text-slate-800">{v}</span> },
+              { title: '货位名称', dataIndex: 'locationName', key: 'locationName' },
+              { title: '分区', dataIndex: 'zoneName', key: 'zoneName' },
+              { title: '货架', dataIndex: 'shelfName', key: 'shelfName' },
+              { title: '仓库', dataIndex: 'storeName', key: 'storeName' },
+              { title: '状态', dataIndex: 'statusLabel', key: 'statusLabel', render: (v) => (
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClass(statusTone(v))}`}>{v}</span>
+              )},
+            ]}
+            dataSource={pagedRows}
+            rowKey="id"
+            size="middle"
+            pagination={false}
+            locale={{ emptyText: '暂无货位数据' }}
+          />
           <Pager total={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </div>
       </section>
