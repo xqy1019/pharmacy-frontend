@@ -12,6 +12,8 @@ export const PERM_GROUPS = {
   sales:          '销售管理',
   iam:            '系统权限',
   replenishment:  '智能补货',
+  controlled:     '麻精药品管理',
+  drug:           '药品操作',
 };
 
 // 权限码 → 中文名
@@ -52,6 +54,9 @@ export const PERM_LABEL = {
   'sales.trace.view':            '追溯码查询',
   'replenishment.view':          '查看补货预测',
   'replenishment.generate':      '生成采购计划',
+  'controlled.drug.manage':      '麻精药品管理（台账/回收/核查）',
+  'controlled.drug.view':        '查看麻精药品台账',
+  'drug.delete':                 '删除药品档案',
 };
 
 // 角色码 → 中文名

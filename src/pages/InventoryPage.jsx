@@ -16,6 +16,12 @@ import { useToast } from '../context/ToastContext';
 import { useAsyncData } from '../hooks/useAsyncData';
 import { formatDate, formatNumber } from '../utils/formatters';
 
+const STORAGE_TEMP_MAP = {
+  COLD_CHAIN: { label: '冷藏 2-8°C', color: 'bg-sky-100 text-sky-700 border-sky-200' },
+  FROZEN:     { label: '冷冻 -20°C', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  ROOM_TEMP:  { label: '常温', color: 'bg-slate-50 text-slate-500 border-slate-200' },
+};
+
 const initialFilters = {
   keyword: '',
   location: '',
@@ -374,6 +380,13 @@ function InventoryPage() {
                 ),
               },
               { title: '批号', dataIndex: 'batchNo', key: 'batchNo', render: (v) => <span className="font-mono text-xs text-slate-500">{v}</span> },
+              {
+                title: '温控', dataIndex: 'storageTemp', key: 'storageTemp', width: 110,
+                render: (v) => {
+                  const cfg = STORAGE_TEMP_MAP[v] || STORAGE_TEMP_MAP.ROOM_TEMP;
+                  return <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${cfg.color}`}>{cfg.label}</span>;
+                },
+              },
               { title: '货位', dataIndex: 'locationCode', key: 'locationCode', render: (v) => <span className="text-slate-500">{v || '--'}</span> },
               { title: '效期', dataIndex: 'expiryDate', key: 'expiryDate', render: (v) => <span className="text-slate-500">{formatDate(v)}</span> },
               {

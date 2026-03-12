@@ -22,8 +22,10 @@ const EMPTY_FORM = {
   drugCode: '', name: '', genericName: '', spec: '', dosageForm: '',
   category: '', drugType: 'RX', manufacturer: '', approvalNumber: '',
   insuranceCode: '', storageCondition: '', lowStockThreshold: '100',
-  nearExpiryDays: '30', isHighAlert: false,
+  nearExpiryDays: '30', isHighAlert: false, isLASA: false, lasaWarning: '',
   usageDosage: '', indications: '', contraindications: '',
+  storageTemp: 'ROOM_TEMP', controlledType: 'NONE',
+  insuranceType: 'OTC_SELF', insurancePrice: '',
 };
 
 // ── Field 必须定义在组件外部，避免每次渲染重新创建导致输入框失焦 ─────────────
@@ -61,9 +63,15 @@ function DrugFormModal({ drug, onClose, onSuccess }) {
     lowStockThreshold: String(drug.lowStockThreshold || '100'),
     nearExpiryDays: String(drug.nearExpiryDays || '30'),
     isHighAlert: !!drug.isHighAlert,
+    isLASA: !!drug.isLASA,
+    lasaWarning: drug.lasaWarning || '',
     usageDosage: drug.usageDosage || '',
     indications: drug.indications || '',
     contraindications: drug.contraindications || '',
+    storageTemp: drug.storageTemp || 'ROOM_TEMP',
+    controlledType: drug.controlledType || 'NONE',
+    insuranceType: drug.insuranceType || 'OTC_SELF',
+    insurancePrice: String(drug.insurancePrice || ''),
   } : { ...EMPTY_FORM });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -160,8 +168,35 @@ function DrugFormModal({ drug, onClose, onSuccess }) {
           <FormField label="医保编码">
             <input value={form.insuranceCode} onChange={f('insuranceCode')} className={INPUT_CLS} />
           </FormField>
+          <FormField label="医保类型">
+            <select className={SELECT_CLS} value={form.insuranceType} onChange={f('insuranceType')}>
+              <option value="CLASS_A">甲类（全额报销）</option>
+              <option value="CLASS_B">乙类（部分自费）</option>
+              <option value="SELF_PAY">自费（不纳入医保）</option>
+              <option value="OTC_SELF">非医保OTC</option>
+            </select>
+          </FormField>
+          <FormField label="医保限价（元）">
+            <input type="number" className={INPUT_CLS} placeholder="0.00" value={form.insurancePrice} onChange={f('insurancePrice')} />
+          </FormField>
           <FormField label="储存条件">
             <input value={form.storageCondition} onChange={f('storageCondition')} placeholder="如 阴凉干燥保存" className={INPUT_CLS} />
+          </FormField>
+          <FormField label="冷链要求">
+            <select className={SELECT_CLS} value={form.storageTemp} onChange={f('storageTemp')}>
+              <option value="ROOM_TEMP">常温（10-30°C）</option>
+              <option value="COLD_CHAIN">冷藏（2-8°C）</option>
+              <option value="FROZEN">冷冻（-20°C以下）</option>
+            </select>
+          </FormField>
+          <FormField label="麻精分类">
+            <select className={SELECT_CLS} value={form.controlledType} onChange={f('controlledType')}>
+              <option value="NONE">普通药品</option>
+              <option value="NARCOTIC">麻醉药品</option>
+              <option value="PSYCHOTROPIC_1">第一类精神药品</option>
+              <option value="PSYCHOTROPIC_2">第二类精神药品</option>
+              <option value="TOXIC">医疗用毒性药品</option>
+            </select>
           </FormField>
           <FormField label="低库存预警阈值">
             <input type="number" value={form.lowStockThreshold} onChange={f('lowStockThreshold')} placeholder="100" className={INPUT_CLS} />
@@ -169,12 +204,35 @@ function DrugFormModal({ drug, onClose, onSuccess }) {
           <FormField label="近效期提醒天数">
             <input type="number" value={form.nearExpiryDays} onChange={f('nearExpiryDays')} placeholder="30" className={INPUT_CLS} />
           </FormField>
-          <div className="flex items-center gap-2.5 pt-6">
-            <input type="checkbox" id="isHighAlert" checked={form.isHighAlert} onChange={f('isHighAlert')}
-              className="h-4 w-4 cursor-pointer accent-rose-500" />
-            <label htmlFor="isHighAlert" className="cursor-pointer text-sm text-slate-700">高警示药品</label>
+          <div className="flex items-center gap-4 pt-6">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="isHighAlert" checked={form.isHighAlert} onChange={f('isHighAlert')}
+                className="h-4 w-4 cursor-pointer accent-rose-500" />
+              <label htmlFor="isHighAlert" className="cursor-pointer text-sm text-slate-700">高警示药品</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="isLASA" checked={form.isLASA} onChange={f('isLASA')}
+                className="h-4 w-4 cursor-pointer accent-orange-500" />
+              <label htmlFor="isLASA" className="cursor-pointer text-sm text-slate-700">LASA药品</label>
+            </div>
           </div>
         </div>
+
+        {/* LASA 警告说明 */}
+        {form.isLASA && (
+          <div className="mb-5">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-3.5 w-1 rounded-full bg-orange-500" />
+              <p className="text-xs font-semibold text-slate-600">LASA 警告信息</p>
+            </div>
+            <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
+              <p className="mb-2 text-xs text-orange-700">LASA（Look-Alike Sound-Alike）指外观或读音易混淆的药品，发药时需特别警示核对。</p>
+              <textarea value={form.lasaWarning} onChange={f('lasaWarning')} rows={2}
+                placeholder="描述易混淆的药品名称或外观特征，如：易与XX混淆，注意区分包装颜色"
+                className={TEXTAREA_CLS} />
+            </div>
+          </div>
+        )}
 
         {/* 临床信息 */}
         <div className="mb-2 flex items-center gap-2">
@@ -348,10 +406,22 @@ export default function DrugMasterPage() {
             { title: '药品编码', dataIndex: 'drugCode', key: 'drugCode', render: (v) => <span className="font-mono text-xs text-slate-500">{v}</span> },
             { title: '药品名称', dataIndex: 'name', key: 'name', render: (_, drug) => (
               <div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <span className="font-medium">{drug.name}</span>
                   {drug.isHighAlert && (
-                    <span className="rounded-full bg-rose-100 px-1.5 py-0.5 text-xs font-medium text-rose-700">高警示</span>
+                    <span className="ml-1 rounded bg-amber-100 px-1 text-xs text-amber-700">高警示</span>
+                  )}
+                  {drug.storageTemp === 'COLD_CHAIN' && (
+                    <span className="ml-1 rounded bg-sky-100 px-1 text-xs text-sky-700">冷藏</span>
+                  )}
+                  {drug.storageTemp === 'FROZEN' && (
+                    <span className="ml-1 rounded bg-indigo-100 px-1 text-xs text-indigo-700">冷冻</span>
+                  )}
+                  {drug.isLASA && (
+                    <span className="ml-1 rounded bg-orange-100 px-1 text-xs text-orange-700">LASA</span>
+                  )}
+                  {drug.controlledType && drug.controlledType !== 'NONE' && (
+                    <span className="ml-1 rounded bg-rose-100 px-1 text-xs text-rose-700">管制</span>
                   )}
                 </div>
                 {drug.genericName && <p className="text-xs text-slate-400">{drug.genericName}</p>}

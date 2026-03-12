@@ -139,7 +139,9 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
     // HIGH 风险时由 Popconfirm 拦截，onConfirm 回调中执行 doReview(true)
   }
 
-  async function handleDispense() {
+  const [showHighAlertConfirm, setShowHighAlertConfirm] = useState(false);
+
+  async function doDispense() {
     setDispensing(true); setReviewError('');
     try {
       await dispensePrescription(prescriptionId, { dispenserName: 'admin' });
@@ -149,6 +151,27 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
       setReviewError(e?.response?.data?.message || e.message || '发药操作失败');
     } finally {
       setDispensing(false);
+    }
+  }
+
+  // 检测高警示药品和 LASA 药品
+  const highAlertItems = useMemo(() => {
+    if (!rx?.items) return [];
+    return rx.items.filter(item => item.isHighAlert || item.drug?.isHighAlert);
+  }, [rx]);
+
+  const lasaItems = useMemo(() => {
+    if (!rx?.items) return [];
+    return rx.items.filter(item => item.isLASA || item.drug?.isLASA);
+  }, [rx]);
+
+  const needsDispenseConfirm = highAlertItems.length > 0 || lasaItems.length > 0 || rx?.riskLevel === 'HIGH';
+
+  function handleDispense() {
+    if (needsDispenseConfirm) {
+      setShowHighAlertConfirm(true);
+    } else {
+      doDispense();
     }
   }
 
@@ -168,7 +191,17 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
   }, [issues]);
 
   const drugColumns = [
-    { title: '药品名称', dataIndex: 'drugName', key: 'drugName', render: (v) => <span className="font-medium">{v}</span> },
+    { title: '药品名称', dataIndex: 'drugName', key: 'drugName', render: (v, item) => (
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="font-medium">{v}</span>
+        {(item.isHighAlert || item.drug?.isHighAlert) && (
+          <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">高警示</span>
+        )}
+        {(item.isLASA || item.drug?.isLASA) && (
+          <span className="rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700">LASA</span>
+        )}
+      </div>
+    )},
     { title: '剂量', dataIndex: 'dose', key: 'dose', render: (v) => v || '--' },
     { title: '频次', dataIndex: 'frequency', key: 'frequency', render: (v) => v || '--' },
     { title: '途径', dataIndex: 'route', key: 'route', render: (v) => v || '--' },
@@ -280,9 +313,19 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
           )}
 
           {/* 状态与风险 */}
-          <div className="flex items-center gap-3 border-b border-slate-100 py-3 mt-3">
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 py-3 mt-3">
             {badge(STATUS_MAP, rx.status)}
             {badge(RISK_MAP, rx.riskLevel)}
+            {highAlertItems.length > 0 && (
+              <span className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-rose-100 text-rose-700 border border-rose-200">
+                高警示药品
+              </span>
+            )}
+            {lasaItems.length > 0 && (
+              <span className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                LASA
+              </span>
+            )}
             {issues.length > 0 && (
               <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 border border-rose-200">
                 {issues.length} 项风险
@@ -422,6 +465,99 @@ function ReviewModal({ prescriptionId, onClose, onDone }) {
           )}
         </div>
       ) : null}
+
+      {/* 高警示/LASA 药品发药二次确认 */}
+      <Modal
+        open={showHighAlertConfirm}
+        onCancel={() => setShowHighAlertConfirm(false)}
+        title={<span className="text-rose-700 font-bold">发药安全拦截 -- 请仔细核对</span>}
+        width={560}
+        destroyOnClose
+        footer={[
+          <button key="cancel" type="button"
+            className="inline-flex items-center justify-center rounded-xl px-5 h-10 text-sm font-medium border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition mr-3"
+            onClick={() => setShowHighAlertConfirm(false)}>
+            取消发药
+          </button>,
+          <button key="confirm" type="button"
+            className="inline-flex items-center justify-center rounded-xl px-5 h-10 text-sm font-medium bg-rose-600 text-white hover:bg-rose-700 transition disabled:opacity-50"
+            disabled={dispensing}
+            onClick={() => { setShowHighAlertConfirm(false); doDispense(); }}>
+            我已确认，继续发药
+          </button>,
+        ]}
+      >
+        <div className="space-y-4 py-2">
+          {/* 高警示药品警告 */}
+          {(highAlertItems.length > 0 || rx?.riskLevel === 'HIGH') && (
+            <div className="rounded-xl bg-rose-50 border border-rose-200 p-4">
+              <div className="flex items-center gap-2 font-semibold text-rose-800 mb-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-200 text-rose-700 text-xs">!</span>
+                本处方含高警示药品
+              </div>
+              <div className="text-sm text-rose-700 mb-2">高警示药品使用不当可能对患者造成严重伤害。</div>
+              {highAlertItems.length > 0 && (
+                <div className="space-y-1">
+                  {highAlertItems.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm">
+                      <span className="rounded bg-rose-200 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">高警示</span>
+                      <span className="font-medium text-rose-800">{item.drugName}</span>
+                      <span className="text-rose-600">{item.dose} {item.frequency}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* LASA 药品警告 */}
+          {lasaItems.length > 0 && (
+            <div className="rounded-xl bg-orange-50 border border-orange-200 p-4">
+              <div className="flex items-center gap-2 font-semibold text-orange-800 mb-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-200 text-orange-700 text-xs">!</span>
+                本处方含 LASA 药品（易混淆药品）
+              </div>
+              <div className="text-sm text-orange-700 mb-2">LASA 药品外观或名称与其他药品相似，发药时务必仔细辨别。</div>
+              <div className="space-y-1.5">
+                {lasaItems.map((item, i) => {
+                  const warning = item.lasaWarning || item.drug?.lasaWarning;
+                  return (
+                    <div key={i} className="rounded-lg bg-white/70 border border-orange-100 px-3 py-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="rounded bg-orange-200 px-1.5 py-0.5 text-[10px] font-bold text-orange-800">LASA</span>
+                        <span className="font-medium text-orange-800">{item.drugName}</span>
+                      </div>
+                      {warning && <p className="mt-1 text-xs text-orange-700">{warning}</p>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 确认清单 */}
+          <div>
+            <p className="mb-2 text-sm font-semibold text-slate-700">发药前请确认：</p>
+            <ul className="space-y-2 text-sm text-slate-700">
+              <li className="flex items-start gap-2"><span className="mt-0.5 text-rose-500">&#10003;</span>已核对患者身份（姓名、病历号）</li>
+              <li className="flex items-start gap-2"><span className="mt-0.5 text-rose-500">&#10003;</span>已核对药品名称、规格、剂量、用法</li>
+              {lasaItems.length > 0 && (
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-orange-500">&#10003;</span>已仔细辨别 LASA 药品，确认无混淆</li>
+              )}
+              <li className="flex items-start gap-2"><span className="mt-0.5 text-rose-500">&#10003;</span>已对患者进行用药指导</li>
+              <li className="flex items-start gap-2"><span className="mt-0.5 text-rose-500">&#10003;</span>已核查过敏史及禁忌症{rx?.allergyNotes ? <span className="ml-1 font-semibold text-rose-600">（患者有过敏记录）</span> : ''}</li>
+            </ul>
+          </div>
+
+          {rx && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              <p><span className="text-slate-400">患者：</span><span className="font-medium text-slate-800">{rx.patientName}</span></p>
+              <p><span className="text-slate-400">处方号：</span><span className="font-mono">{rx.rxNo}</span></p>
+              <p><span className="text-slate-400">药品数：</span>{rx.items?.length || 0} 项</p>
+            </div>
+          )}
+        </div>
+      </Modal>
     </Modal>
   );
 }

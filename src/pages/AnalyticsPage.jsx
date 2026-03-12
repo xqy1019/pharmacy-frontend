@@ -33,6 +33,24 @@ const ABC_STYLE = {
   C: { bg: 'bg-slate-100',   text: 'text-slate-600',   bar: '#94a3b8' }
 };
 
+const DEPT_DRUG_DATA = [
+  { dept: '内科', totalAmt: 285600, topDrug: '阿莫西林胶囊', rxCount: 1240, antibiotic: 45.2 },
+  { dept: '外科', totalAmt: 312400, topDrug: '头孢曲松钠', rxCount: 980, antibiotic: 62.8 },
+  { dept: '儿科', totalAmt: 198500, topDrug: '布洛芬混悬液', rxCount: 1560, antibiotic: 38.5 },
+  { dept: '急诊科', totalAmt: 425000, topDrug: '盐酸利多卡因', rxCount: 2100, antibiotic: 28.3 },
+  { dept: '妇科', totalAmt: 167800, topDrug: '氨苄西林', rxCount: 720, antibiotic: 52.1 },
+  { dept: '骨科', totalAmt: 234100, topDrug: '头孢唑啉钠', rxCount: 890, antibiotic: 71.4 },
+];
+
+const DDD_DATA = [
+  { drug: '头孢曲松钠', category: '三代头孢', ddd: 32.5, change: +2.3, risk: 'HIGH' },
+  { drug: '阿莫西林克拉维酸钾', category: '青霉素类', ddd: 28.1, change: -1.2, risk: 'MEDIUM' },
+  { drug: '头孢唑啉钠', category: '一代头孢', ddd: 18.7, change: +0.5, risk: 'LOW' },
+  { drug: '亚胺培南西司他丁', category: '碳青霉烯', ddd: 8.2, change: +3.1, risk: 'HIGH' },
+  { drug: '左氧氟沙星', category: '氟喹诺酮', ddd: 22.4, change: -0.8, risk: 'MEDIUM' },
+  { drug: '万古霉素', category: '糖肽类', ddd: 5.6, change: +1.9, risk: 'HIGH' },
+];
+
 function SectionTitle({ children, badge }) {
   return (
     <div className="mb-4 flex items-center gap-3">
@@ -346,6 +364,62 @@ function AnalyticsPage() {
           }
         </div>
         <ChartCard title="库存品类分布" subtitle="按药品品类查看库存结构" option={categoryPieOption} height={320} />
+      </section>
+
+      {/* 科室用药分析 */}
+      <section className="rounded-2xl border border-white bg-white p-6 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
+        <SectionTitle badge="本月数据">科室用药分析</SectionTitle>
+        <Table
+          columns={[
+            { title: '科室', dataIndex: 'dept', key: 'dept', render: (v) => <span className="font-medium text-slate-700">{v}</span> },
+            { title: '月用药金额(元)', dataIndex: 'totalAmt', key: 'totalAmt', render: (v) => <span className="text-slate-600">{formatNumber(v)}</span> },
+            { title: '处方量', dataIndex: 'rxCount', key: 'rxCount', render: (v) => <span className="text-slate-600">{formatNumber(v)}</span> },
+            { title: '主要品种', dataIndex: 'topDrug', key: 'topDrug', render: (v) => <span className="text-slate-600">{v}</span> },
+            { title: '抗生素占比', dataIndex: 'antibiotic', key: 'antibiotic', render: (v) => (
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${v > 60 ? 'bg-rose-100 text-rose-700' : v > 40 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                {v.toFixed(1)}%
+              </span>
+            )},
+          ]}
+          dataSource={DEPT_DRUG_DATA}
+          rowKey="dept"
+          size="small"
+          pagination={false}
+        />
+        <p className="mt-2 text-xs text-slate-400">WHO建议住院患者抗生素使用率 &lt; 60%，门诊患者 &lt; 20%</p>
+      </section>
+
+      {/* 抗生素使用强度(DDD)分析 */}
+      <section className="rounded-2xl border border-white bg-white p-6 shadow-[0_2px_8px_rgba(99,102,241,0.06),0_12px_32px_rgba(99,102,241,0.08)]">
+        <SectionTitle badge="DDD/百张床位/天">抗生素使用强度分析</SectionTitle>
+        <div className="mb-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+          国家卫健委规定住院患者抗菌药物使用强度不超过 <strong>40 DDD</strong>，本月综合使用强度: <strong className="text-rose-700">115.5 DDD</strong>（超标，需控制）
+        </div>
+        <Table
+          columns={[
+            { title: '抗生素名称', dataIndex: 'drug', key: 'drug', render: (v) => <span className="font-medium text-slate-700">{v}</span> },
+            { title: '分类', dataIndex: 'category', key: 'category', render: (v) => <span className="text-slate-600">{v}</span> },
+            { title: 'DDD值', dataIndex: 'ddd', key: 'ddd', render: (v) => (
+              <span className={`font-semibold ${v > 30 ? 'text-rose-600' : v > 20 ? 'text-amber-600' : 'text-slate-600'}`}>
+                {v.toFixed(1)}
+              </span>
+            )},
+            { title: '环比变化', dataIndex: 'change', key: 'change', render: (v) => (
+              <span className={v > 0 ? 'text-rose-600' : 'text-emerald-600'}>
+                {v > 0 ? '\u2191' : '\u2193'} {Math.abs(v).toFixed(1)}%
+              </span>
+            )},
+            { title: '监控等级', dataIndex: 'risk', key: 'risk', render: (v) => {
+              const style = v === 'HIGH' ? 'bg-rose-100 text-rose-700' : v === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
+              const label = v === 'HIGH' ? '重点监控' : v === 'MEDIUM' ? '一般监控' : '常规';
+              return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${style}`}>{label}</span>;
+            }},
+          ]}
+          dataSource={DDD_DATA}
+          rowKey="drug"
+          size="small"
+          pagination={false}
+        />
       </section>
     </div>
   );

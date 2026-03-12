@@ -401,3 +401,78 @@ export function assignRolePerms(id, permissionIds) {
 export function dispensePrescription(id, body) {
   return client.post(`/api/v1/prescriptions/${id}/dispense`, body);
 }
+
+// ── 麻精药品管理 ──────────────────────────────────────────────────────────────
+export function fetchControlledLedger() {
+  return client.get('/api/v1/controlled-drugs/ledger');
+}
+
+export function createControlledDispense(body) {
+  return client.post('/api/v1/controlled-drugs/dispense', body);
+}
+
+export function fetchAmpouleReturns() {
+  return client.get('/api/v1/controlled-drugs/ampoule-returns');
+}
+
+export function createAmpouleReturn(body) {
+  return client.post('/api/v1/controlled-drugs/ampoule-returns', body);
+}
+
+export function fetchControlledVerifications() {
+  return client.get('/api/v1/controlled-drugs/verifications');
+}
+
+export function createControlledVerification(body) {
+  return client.post('/api/v1/controlled-drugs/verifications', body);
+}
+
+export function exportControlledReport() {
+  return client.get('/api/v1/controlled-drugs/export', { responseType: 'blob' });
+}
+
+// ── 药品不良反应(ADR) ─────────────────────────────────────────────────────────
+export function fetchADRReports(params = {}) {
+  return client.get('/api/v1/quality/adr-reports', { params });
+}
+
+export function createADRReport(body) {
+  return client.post('/api/v1/quality/adr-reports', body);
+}
+
+export function submitADRReport(id) {
+  return client.post(`/api/v1/quality/adr-reports/${id}/submit`);
+}
+
+export function fetchADRReportDetail(id) {
+  return client.get(`/api/v1/quality/adr-reports/${id}`);
+}
+
+// ── HIS 集成管理 ─────────────────────────────────────────────────────────────
+export function fetchHisConfig() {
+  return client.get('/api/v1/his/config');
+}
+
+export function saveHisConfig(body) {
+  return client.put('/api/v1/his/config', body);
+}
+
+export function fetchHisDrugMappings(params = {}) {
+  return client.get('/api/v1/his/drug-mappings', { params });
+}
+
+export function createHisDrugMapping(body) {
+  return client.post('/api/v1/his/drug-mappings', body);
+}
+
+export function updateHisDrugMapping(id, body) {
+  return client.put(`/api/v1/his/drug-mappings/${id}`, body);
+}
+
+export function deleteHisDrugMapping(id) {
+  return client.delete(`/api/v1/his/drug-mappings/${id}`);
+}
+
+export function fetchHisIntegrationLogs(params = {}) {
+  return client.get('/api/v1/his/logs', { params });
+}

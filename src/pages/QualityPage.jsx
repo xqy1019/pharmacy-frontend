@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   completeRecall,
   createRecall,
@@ -197,6 +198,7 @@ export default function QualityPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [progressRecall, setProgressRecall] = useState(null);
   const toast = useToast();
+  const navigate = useNavigate();
 
   const { data: recalls, loading } = useAsyncData(fetchRecalls, [refreshKey]);
 
@@ -266,6 +268,8 @@ export default function QualityPage() {
           <div className="ml-auto flex gap-2">
             <button onClick={refresh}
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50">刷新</button>
+            <button onClick={() => navigate('/quality/adr')}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">ADR上报</button>
             <button onClick={() => setShowCreate(true)}
               className="rounded-xl bg-rose-600 px-4 py-2 text-sm text-white transition hover:bg-rose-700">+ 发起召回</button>
           </div>

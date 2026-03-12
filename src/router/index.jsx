@@ -13,10 +13,14 @@ import DispensingPage from '../pages/DispensingPage';
 import SalesPage from '../pages/SalesPage';
 import StocktakePage from '../pages/StocktakePage';
 import QualityPage from '../pages/QualityPage';
+import ADRPage from '../pages/ADRPage';
+import ControlledDrugsPage from '../pages/ControlledDrugsPage';
 import AnalyticsPage from '../pages/AnalyticsPage';
+import TemperatureLogPage from '../pages/TemperatureLogPage';
 import SystemUsersPage from '../pages/SystemUsersPage';
 import SystemRolesPage from '../pages/SystemRolesPage';
 import SystemAuditPage from '../pages/SystemAuditPage';
+import IntegrationPage from '../pages/IntegrationPage';
 import ModulePage from '../pages/ModulePage';
 
 // 路由权限守卫：无权限跳回首页（perm 单个，perms 任一满足）
@@ -77,6 +81,15 @@ export function RouterProvider() {
         <Route path="/quality" element={
           <RequirePerm perm="quality.recall.view"><QualityPage /></RequirePerm>
         } />
+        <Route path="/quality/adr" element={
+          <RequirePerm perm="quality.recall.view"><ADRPage /></RequirePerm>
+        } />
+        <Route path="/controlled-drugs" element={
+          <RequirePerm perm="controlled.drug.manage"><ControlledDrugsPage /></RequirePerm>
+        } />
+        <Route path="/inventory/temperature" element={
+          <RequirePerm perm="inventory.batch.manage"><TemperatureLogPage /></RequirePerm>
+        } />
         <Route path="/analytics" element={
           <RequirePerm perm="report.kpi.view"><AnalyticsPage /></RequirePerm>
         } />
@@ -90,6 +103,9 @@ export function RouterProvider() {
         } />
         <Route path="/system/audit" element={
           <RequirePerm perm="iam.audit.view"><SystemAuditPage /></RequirePerm>
+        } />
+        <Route path="/system/integration" element={
+          <RequirePerm perm="integration.job.view"><IntegrationPage /></RequirePerm>
         } />
 
         <Route path="*" element={<Navigate to="/" replace />} />
